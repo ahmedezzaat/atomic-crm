@@ -87,7 +87,8 @@ export async function getSearchResults(
   );
   const companyName = (id: Identifier | null | undefined) =>
     id != null ? (companiesById.get(id)?.name ?? null) : null;
-  const contactLabel = (id: Identifier) => {
+  const contactLabel = (id: Identifier | null) => {
+    if (id == null) return null;
     const contact = contactsById.get(id);
     return contact ? contactName(contact) : null;
   };
@@ -169,8 +170,8 @@ export async function getSearchResults(
               resource: "tasks",
               record_id: task.id,
               title: task.text?.slice(0, TITLE_LENGTH) ?? null,
-              subtitle: contactLabel(task.contact_id),
-              contact_id: task.contact_id,
+              subtitle: contactLabel(task.contact_id ?? null),
+              contact_id: task.contact_id ?? null,
               deal_id: null,
               date: task.created_at ?? null,
               content,

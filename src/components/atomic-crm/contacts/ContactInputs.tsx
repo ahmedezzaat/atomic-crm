@@ -13,7 +13,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { BooleanInput } from "@/components/admin/boolean-input";
 import { ReferenceInput } from "@/components/admin/reference-input";
 import { TextInput } from "@/components/admin/text-input";
-import { RadioButtonGroupInput } from "@/components/admin/radio-button-group-input";
 import { SelectInput } from "@/components/admin/select-input";
 import { ArrayInput } from "@/components/admin/array-input";
 import { SimpleFormIterator } from "@/components/admin/simple-form-iterator";
@@ -23,11 +22,7 @@ import { StatusSelector } from "../notes";
 import type { Sale, Contact } from "../types";
 import { Avatar } from "./Avatar";
 import { AutocompleteCompanyInput } from "../companies/AutocompleteCompanyInput.tsx";
-import {
-  contactGender,
-  translateContactGenderLabel,
-  translatePersonalInfoTypeLabel,
-} from "./contactModel.ts";
+import { translatePersonalInfoTypeLabel } from "./contactModel.ts";
 
 export const ContactInputs = () => {
   const isMobile = useIsMobile();
@@ -61,17 +56,6 @@ const ContactIdentityInputs = () => {
       <h6 className="text-lg font-semibold">
         {translate("resources.contacts.field_categories.identity")}
       </h6>
-      <RadioButtonGroupInput
-        label={false}
-        row
-        source="gender"
-        choices={contactGender}
-        helperText={false}
-        optionText={(choice) => translateContactGenderLabel(choice, translate)}
-        translateChoice={false}
-        optionValue="value"
-        defaultValue={contactGender[0].value}
-      />
       <TextInput source="first_name" validate={required()} helperText={false} />
       <TextInput source="last_name" validate={required()} helperText={false} />
     </div>

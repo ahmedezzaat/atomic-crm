@@ -3,7 +3,7 @@ import { SortButton } from "@/components/admin/sort-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserPlus } from "lucide-react";
+import { Plus, UserPlus } from "lucide-react";
 import {
   RecordContextProvider,
   ShowBase,
@@ -22,15 +22,15 @@ import {
 } from "react-router";
 
 import { useIsMobile } from "@/hooks/use-mobile";
+import { AddTask } from "../tasks/AddTask";
+import { TasksIterator } from "../tasks/TasksIterator";
 import { ActivityLog } from "../activity/ActivityLog";
 import { Avatar } from "../contacts/Avatar";
-import { TagsList } from "../contacts/TagsList";
 import { findDealLabel } from "../deals/dealUtils";
 import { MobileContent } from "../layout/MobileContent";
 import MobileHeader from "../layout/MobileHeader";
 import { MobileBackButton } from "../misc/MobileBackButton";
 import { formatRelativeDate } from "../misc/RelativeDate";
-import { Status } from "../misc/Status";
 import { useConfigurationContext } from "../root/ConfigurationContext";
 import type { Company, Contact, Deal } from "../types";
 import {
@@ -120,7 +120,7 @@ const CompanyShowContent = () => {
               </h5>
             </div>
             <Tabs defaultValue={currentTab} onValueChange={handleTabChange}>
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="activity">
                   {translate("crm.common.activity")}
                 </TabsTrigger>
@@ -131,14 +131,28 @@ const CompanyShowContent = () => {
                         smart_count: record.nb_contacts ?? 0,
                       })}
                 </TabsTrigger>
-                {record.nb_deals ? (
-                  <TabsTrigger value="deals">
-                    {translate("resources.companies.nb_deals", {
-                      smart_count: record.nb_deals ?? 0,
-                    })}
-                  </TabsTrigger>
-                ) : null}
+                <TabsTrigger value="tasks">
+                  {translate("resources.tasks.name", { smart_count: 2 })}
+                </TabsTrigger>
+                <TabsTrigger value="deals">
+                  {translate("resources.companies.nb_deals", {
+                    smart_count: record.nb_deals ?? 0,
+                  })}
+                </TabsTrigger>
               </TabsList>
+              <TabsContent value="tasks" className="pt-2">
+                <div className="flex flex-row justify-end mt-1">
+                  <AddTask forCompany />
+                </div>
+                <ReferenceManyField
+                  reference="tasks"
+                  target="company_id"
+                  sort={{ field: "due_date", order: "ASC" }}
+                  perPage={1000}
+                >
+                  <TasksIterator />
+                </ReferenceManyField>
+              </TabsContent>
               <TabsContent value="activity" className="pt-2">
                 <ActivityLog companyId={record.id} context="company" />
               </TabsContent>
@@ -170,15 +184,20 @@ const CompanyShowContent = () => {
                 )}
               </TabsContent>
               <TabsContent value="deals">
-                {record.nb_deals ? (
-                  <ReferenceManyField
-                    reference="deals"
-                    target="company_id"
-                    sort={{ field: "name", order: "ASC" }}
-                  >
-                    <DealsIterator />
-                  </ReferenceManyField>
-                ) : null}
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-row justify-end space-x-2 mt-1">
+                    <CreateRelatedDealButton />
+                  </div>
+                  {record.nb_deals ? (
+                    <ReferenceManyField
+                      reference="deals"
+                      target="company_id"
+                      sort={{ field: "name", order: "ASC" }}
+                    >
+                      <DealsIterator />
+                    </ReferenceManyField>
+                  ) : null}
+                </div>
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -190,8 +209,6 @@ const CompanyShowContent = () => {
 };
 
 const ContactsIterator = () => {
-  const translate = useTranslate();
-  const [locale = "en"] = useLocaleState();
   const location = useLocation();
   const { data: contacts, error, isPending } = useListContext<Contact>();
 
@@ -210,31 +227,20 @@ const ContactsIterator = () => {
               <div className="mr-4">
                 <Avatar />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-medium">
+              <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-4 gap-x-4">
+                <div className="font-medium truncate">
                   {`${contact.first_name} ${contact.last_name}`}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-muted-foreground truncate">
                   {contact.title}
-                  {contact.nb_tasks
-                    ? ` - ${translate("crm.common.task_count", {
-                        smart_count: contact.nb_tasks ?? 0,
-                      })}`
-                    : ""}
-                  &nbsp; &nbsp;
-                  <TagsList />
+                </div>
+                <div className="text-muted-foreground truncate">
+                  {contact.email_jsonb?.[0]?.email}
+                </div>
+                <div className="text-muted-foreground truncate">
+                  {contact.phone_jsonb?.[0]?.number}
                 </div>
               </div>
-              {contact.last_seen && (
-                <div className="text-right">
-                  <div className="text-sm text-muted-foreground">
-                    {translate("crm.common.last_activity_with_date", {
-                      date: formatRelativeDate(contact.last_seen, locale),
-                    })}{" "}
-                    <Status status={contact.status} />
-                  </div>
-                </div>
-              )}
             </RouterLink>
           </div>
         </RecordContextProvider>
@@ -255,6 +261,31 @@ const CreateRelatedContactButton = () => {
       >
         <UserPlus className="h-4 w-4" />
         {translate("resources.contacts.action.add")}
+      </RouterLink>
+    </Button>
+  );
+};
+
+const CreateRelatedDealButton = () => {
+  const translate = useTranslate();
+  const location = useLocation();
+  const company = useRecordContext<Company>();
+  return (
+    <Button variant="outline" asChild size="sm" className="h-9">
+      <RouterLink
+        to="/deals/create"
+        state={
+          company
+            ? {
+                record: { company_id: company.id },
+                from: location.pathname,
+              }
+            : undefined
+        }
+        className="flex items-center gap-2"
+      >
+        <Plus className="h-4 w-4" />
+        {translate("resources.deals.action.create")}
       </RouterLink>
     </Button>
   );

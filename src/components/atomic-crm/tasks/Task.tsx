@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { useConfigurationContext } from "../root/ConfigurationContext";
-import type { Contact, Task as TData } from "../types";
+import type { Company, Contact, Task as TData } from "../types";
 import { TaskEdit } from "./TaskEdit";
 import { TaskEditSheet } from "./TaskEditSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -38,6 +38,7 @@ export const Task = ({
   const translate = useTranslate();
   const queryClient = useQueryClient();
   const getContactRepresentation = useGetRecordRepresentation("contacts");
+  const getCompanyRepresentation = useGetRecordRepresentation("companies");
 
   const [openEdit, setOpenEdit] = useState(false);
 
@@ -125,7 +126,27 @@ export const Task = ({
               {translate("resources.tasks.fields.due_short")}
               &nbsp;
               <DateField source="due_date" record={task} showDate showTime />
-              {showContact && (
+              {showContact && task.company_id != null && (
+                <ReferenceField<TData, Company>
+                  source="company_id"
+                  reference="companies"
+                  record={task}
+                  link="show"
+                  className="inline text-sm text-muted-foreground"
+                  render={({ referenceRecord }) => {
+                    if (!referenceRecord) return null;
+                    return (
+                      <>
+                        {" "}
+                        {translate("resources.tasks.regarding_company", {
+                          name: getCompanyRepresentation(referenceRecord),
+                        })}
+                      </>
+                    );
+                  }}
+                />
+              )}
+              {showContact && task.contact_id != null && (
                 <ReferenceField<TData, Contact>
                   source="contact_id"
                   reference="contacts"

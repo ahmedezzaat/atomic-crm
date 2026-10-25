@@ -32,9 +32,12 @@ import { TaskFormContent } from "./TaskFormContent";
 export const AddTask = ({
   selectContact,
   display = "chip",
+  forCompany = false,
 }: {
   selectContact?: boolean;
   display?: "chip" | "icon";
+  // when true, the record in context is a company and the task is attached to it
+  forCompany?: boolean;
 }) => {
   const { identity } = useGetIdentity();
   const dataProvider = useDataProvider();
@@ -46,10 +49,16 @@ export const AddTask = ({
   const handleOpen = () => {
     setOpen(true);
   };
-  const getContactRepresentation = useGetRecordRepresentation("contacts");
+  const getContactRepresentation = useGetRecordRepresentation(
+    forCompany ? "companies" : "contacts",
+  );
 
   const handleSuccess = async (data: any) => {
     setOpen(false);
+    if (forCompany || data.contact_id == null) {
+      notify("resources.tasks.added");
+      return;
+    }
     const contact = await dataProvider.getOne("contacts", {
       id: data.contact_id,
     });
@@ -104,7 +113,9 @@ export const AddTask = ({
         resource="tasks"
         record={{
           type: "none",
-          contact_id: contact?.id,
+          ...(forCompany
+            ? { company_id: contact?.id }
+            : { contact_id: contact?.id }),
           due_date: new Date().toISOString(),
           sales_id: identity.id,
         }}
@@ -115,7 +126,7 @@ export const AddTask = ({
             <Form className="flex flex-col gap-4">
               <DialogHeader>
                 <DialogTitle>
-                  {!selectContact
+                  {forCompany || !selectContact
                     ? translate("resources.tasks.dialog.create_for", {
                         name: getContactRepresentation(contact!),
                       })

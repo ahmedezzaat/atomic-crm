@@ -8,7 +8,6 @@ import { Separator } from "@/components/ui/separator";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 import ImageEditorField from "../misc/ImageEditorField";
-import { isLinkedinUrl } from "../misc/isLinkedInUrl";
 import { useConfigurationContext } from "../root/ConfigurationContext";
 import type { Company, Sale } from "../types";
 import { getTranslatedCompanySizeLabel } from "./getTranslatedCompanySizeLabel";
@@ -84,11 +83,6 @@ const CompanyContactInputs = () => {
         })}
       </h6>
       <TextInput source="website" helperText={false} validate={isUrl} />
-      <TextInput
-        source="linkedin_url"
-        helperText={false}
-        validate={isLinkedinUrl}
-      />
       <TextInput source="phone_number" helperText={false} />
     </div>
   );
@@ -96,7 +90,7 @@ const CompanyContactInputs = () => {
 
 const CompanyContextInputs = () => {
   const translate = useTranslate();
-  const { companySectors } = useConfigurationContext();
+  const { companySectors, companyCompetitors } = useConfigurationContext();
   const translatedSizes = sizes.map((size) => ({
     ...size,
     name: getTranslatedCompanySizeLabel(size, translate),
@@ -116,14 +110,20 @@ const CompanyContextInputs = () => {
         helperText={false}
       />
       <SelectInput source="size" choices={translatedSizes} helperText={false} />
-      <TextInput source="revenue" helperText={false} />
-      <TextInput source="tax_identifier" helperText={false} />
+      <SelectInput
+        source="competitor"
+        choices={companyCompetitors}
+        optionText="label"
+        optionValue="value"
+        helperText={false}
+      />
     </div>
   );
 };
 
 const CompanyAddressInputs = () => {
   const translate = useTranslate();
+  const { companyCities } = useConfigurationContext();
   return (
     <div className="flex flex-col gap-4">
       <h6 className="text-lg font-semibold">
@@ -132,9 +132,13 @@ const CompanyAddressInputs = () => {
         })}
       </h6>
       <TextInput source="address" helperText={false} />
-      <TextInput source="city" helperText={false} />
-      <TextInput source="zipcode" helperText={false} />
-      <TextInput source="state_abbr" helperText={false} />
+      <SelectInput
+        source="city"
+        choices={companyCities}
+        optionText="label"
+        optionValue="label"
+        helperText={false}
+      />
       <TextInput source="country" helperText={false} />
     </div>
   );

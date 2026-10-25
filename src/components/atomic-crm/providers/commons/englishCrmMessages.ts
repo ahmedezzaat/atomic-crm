@@ -12,6 +12,7 @@ export const englishCrmMessages = {
         nb_contacts: "Number of contacts",
         revenue: "Revenue",
         sector: "Sector",
+        competitor: "Competitor system",
         size: "Size",
         tax_identifier: "Tax Identifier",
         address: "Address",
@@ -343,6 +344,14 @@ export const englishCrmMessages = {
         with_pending: "With pending tasks",
       },
       regarding_contact: "(Re: %{name})",
+      regarding_company: "(Company: %{name})",
+      fields_related: "Related to",
+      status: {
+        open: "Open",
+        done: "Completed",
+        all: "All",
+      },
+      list_empty: "No tasks to show.",
       updated: "Task updated",
     },
     tags: {
@@ -512,6 +521,8 @@ export const englishCrmMessages = {
       about: "About",
       companies: {
         sectors: "Sectors",
+        cities: "Cities",
+        competitors: "Competitors",
       },
       dark_mode_logo: "Dark Mode Logo",
       deals: {

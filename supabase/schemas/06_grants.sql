@@ -162,3 +162,14 @@ grant all on sequence public.tasks_id_seq to service_role;
 
 -- No default privileges: every new table, view, sequence or function must
 -- declare its grants explicitly in the migration that creates it.
+
+grant all on table public.subscriptions to anon;
+grant all on table public.subscriptions to authenticated;
+grant all on table public.subscriptions to service_role;
+grant all on sequence public.subscriptions_id_seq to anon;
+grant all on sequence public.subscriptions_id_seq to authenticated;
+grant all on sequence public.subscriptions_id_seq to service_role;
+
+grant all on table public.customers_summary to anon;
+grant all on table public.customers_summary to authenticated;
+grant all on table public.customers_summary to service_role;

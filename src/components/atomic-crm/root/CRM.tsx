@@ -20,6 +20,8 @@ import contacts from "../contacts";
 import { Dashboard } from "../dashboard/Dashboard";
 import { MobileDashboard } from "../dashboard/MobileDashboard";
 import deals from "../deals";
+import tasks from "../tasks";
+import customers from "../customers";
 import { Layout } from "../layout/Layout";
 import { MobileLayout } from "../layout/MobileLayout";
 import { SignupPage } from "../login/SignupPage";
@@ -40,6 +42,8 @@ import {
 } from "./ConfigurationContext";
 import type { CrmDataProvider } from "../providers/types";
 import {
+  defaultCompanyCities,
+  defaultCompanyCompetitors,
   defaultCompanySectors,
   defaultCurrency,
   defaultDarkModeLogo,
@@ -48,6 +52,7 @@ import {
   defaultDealStages,
   defaultLightModeLogo,
   defaultNoteStatuses,
+  defaultSubscriptionProducts,
   defaultTaskTypes,
   defaultTitle,
 } from "./defaultConfiguration";
@@ -79,6 +84,8 @@ export type CRMProps = {
  * default configurations and themes but allows for customization through props. The component
  * seeds the store with any custom prop values for backwards compatibility.
  *
+ * @param {LabeledValue[]} companyCompetitors - The competitor systems a company can be logged as using.
+ * @param {LabeledValue[]} companyCities - The list of cities selectable on a company.
  * @param {LabeledValue[]} companySectors - The list of company sectors used in the application.
  * @param {string} currency - The ISO 4217 currency code used to format monetary values (e.g. "USD", "EUR", "GBP").
  * @param {RaThemeOptions} darkTheme - The theme to use when the application is in dark mode.
@@ -115,6 +122,8 @@ export type CRMProps = {
  * export default App;
  */
 export const CRM = ({
+  companyCities = defaultCompanyCities,
+  companyCompetitors = defaultCompanyCompetitors,
   companySectors = defaultCompanySectors,
   currency = defaultCurrency,
   dealCategories = defaultDealCategories,
@@ -123,6 +132,7 @@ export const CRM = ({
   darkModeLogo = defaultDarkModeLogo,
   lightModeLogo = defaultLightModeLogo,
   noteStatuses = defaultNoteStatuses,
+  subscriptionProducts = defaultSubscriptionProducts,
   taskTypes = defaultTaskTypes,
   title = defaultTitle,
   dataProvider = defaultDataProviderBuilder(),
@@ -151,12 +161,15 @@ export const CRM = ({
   useEffect(() => {
     if (!store.getItem(CONFIGURATION_STORE_KEY)) {
       store.setItem(CONFIGURATION_STORE_KEY, {
+        companyCities,
+        companyCompetitors,
         companySectors,
         currency,
         dealCategories,
         dealPipelineStatuses,
         dealStages,
         noteStatuses,
+        subscriptionProducts,
         taskTypes,
         title,
         darkModeLogo,
@@ -267,7 +280,9 @@ const DesktopAdmin = (
       <Resource name="companies" {...companies} />
       <Resource name="contact_notes" />
       <Resource name="deal_notes" />
-      <Resource name="tasks" />
+      <Resource name="tasks" {...tasks} />
+      <Resource name="customers" {...customers} />
+      <Resource name="subscriptions" />
       <Resource name="sales" {...sales} />
       <Resource name="tags" />
     </Admin>

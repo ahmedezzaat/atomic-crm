@@ -72,6 +72,8 @@ export type Company = {
   context_links?: string[];
   nb_contacts?: number;
   nb_deals?: number;
+  competitor?: string;
+  is_customer?: boolean;
 } & Pick<RaRecord, "id">;
 
 export type EmailAndType = {
@@ -148,7 +150,8 @@ export type Tag = {
 };
 
 export type Task = {
-  contact_id: Identifier;
+  contact_id?: Identifier | null;
+  company_id?: Identifier | null;
   type: string;
   text: string;
   due_date: string;

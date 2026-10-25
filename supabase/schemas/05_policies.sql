@@ -67,3 +67,10 @@ create policy "Enable update for admins" on public.configuration for update to a
 
 -- Favicons excluded domains
 create policy "Enable access for authenticated users only" on public.favicons_excluded_domains to authenticated using (true) with check (true);
+
+alter table public.subscriptions enable row level security;
+
+create policy "Enable read access for authenticated users" on public.subscriptions for select to authenticated using (true);
+create policy "Enable insert for authenticated users only" on public.subscriptions for insert to authenticated with check (true);
+create policy "Subscription Update Policy" on public.subscriptions for update to authenticated using (true);
+create policy "Subscription Delete Policy" on public.subscriptions for delete to authenticated using (true);

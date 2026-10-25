@@ -124,8 +124,11 @@ const transformFormValues = (data: Record<string, any>) => ({
     lightModeLogo: data.lightModeLogo,
     darkModeLogo: data.darkModeLogo,
     currency: data.currency,
+    companyCities: ensureValues(data.companyCities),
+    companyCompetitors: ensureValues(data.companyCompetitors),
     companySectors: ensureValues(data.companySectors),
     dealCategories: ensureValues(data.dealCategories),
+    subscriptionProducts: ensureValues(data.subscriptionProducts),
     taskTypes: ensureValues(data.taskTypes),
     dealStages: ensureValues(data.dealStages),
     dealPipelineStatuses: data.dealPipelineStatuses,
@@ -172,8 +175,11 @@ const SettingsForm = () => {
       lightModeLogo: { src: config.lightModeLogo },
       darkModeLogo: { src: config.darkModeLogo },
       currency: config.currency,
+      companyCities: config.companyCities,
+      companyCompetitors: config.companyCompetitors,
       companySectors: config.companySectors,
       dealCategories: config.dealCategories,
+      subscriptionProducts: config.subscriptionProducts,
       taskTypes: config.taskTypes,
       dealStages: config.dealStages,
       dealPipelineStatuses: config.dealPipelineStatuses,
@@ -322,6 +328,50 @@ const SettingsFormFields = () => {
             </h3>
             <ArrayInput
               source="companySectors"
+              label={false}
+              helperText={false}
+            >
+              <SimpleFormIterator disableReordering disableClear>
+                <TextInput source="label" label={false} />
+              </SimpleFormIterator>
+            </ArrayInput>
+            <h3 className="text-lg font-medium text-muted-foreground">
+              {translate("crm.settings.companies.cities")}
+            </h3>
+            <ArrayInput source="companyCities" label={false} helperText={false}>
+              <SimpleFormIterator disableReordering disableClear>
+                <TextInput source="label" label={false} />
+              </SimpleFormIterator>
+            </ArrayInput>
+            <h3 className="text-lg font-medium text-muted-foreground">
+              {translate("crm.settings.companies.competitors")}
+            </h3>
+            <ArrayInput
+              source="companyCompetitors"
+              label={false}
+              helperText={false}
+            >
+              <SimpleFormIterator disableReordering disableClear>
+                <TextInput source="label" label={false} />
+              </SimpleFormIterator>
+            </ArrayInput>
+          </CardContent>
+        </Card>
+
+        {/* Customers */}
+        <Card id="customers">
+          <CardContent className="space-y-4">
+            <h2 className="text-xl font-semibold text-muted-foreground">
+              {translate("resources.customers.name", {
+                smart_count: 2,
+                _: "Customers",
+              })}
+            </h2>
+            <h3 className="text-lg font-medium text-muted-foreground">
+              {translate("resources.customers.products", { _: "Products" })}
+            </h3>
+            <ArrayInput
+              source="subscriptionProducts"
               label={false}
               helperText={false}
             >

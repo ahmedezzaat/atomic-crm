@@ -107,7 +107,7 @@ export const CompanyInfo = ({ record }: { record: Company }) => {
 };
 
 export const ContextInfo = ({ record }: { record: Company }) => {
-  const { companySectors } = useConfigurationContext();
+  const { companySectors, companyCompetitors } = useConfigurationContext();
   const translate = useTranslate();
   if (!record.revenue && !record.id) {
     return null;
@@ -115,6 +115,9 @@ export const ContextInfo = ({ record }: { record: Company }) => {
 
   const sector = companySectors.find((s) => s.value === record.sector);
   const sectorLabel = sector?.label;
+  const competitorLabel = companyCompetitors.find(
+    (c) => c.value === record.competitor,
+  )?.label;
   const translatedSizes = sizes.map((size) => ({
     ...size,
     name: getTranslatedCompanySizeLabel(size, translate),
@@ -127,6 +130,12 @@ export const ContextInfo = ({ record }: { record: Company }) => {
       {sectorLabel && (
         <span>
           {translate("resources.companies.fields.sector")}: {sectorLabel}
+        </span>
+      )}
+      {competitorLabel && (
+        <span>
+          {translate("resources.companies.fields.competitor")}:{" "}
+          {competitorLabel}
         </span>
       )}
       {record.size && (

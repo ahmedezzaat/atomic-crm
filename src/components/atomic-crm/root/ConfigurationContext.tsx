@@ -7,12 +7,15 @@ import { defaultConfiguration } from "./defaultConfiguration";
 export const CONFIGURATION_STORE_KEY = "app.configuration";
 
 export interface ConfigurationContextValue {
+  companyCities: LabeledValue[];
+  companyCompetitors: LabeledValue[];
   companySectors: LabeledValue[];
   currency: string;
   dealCategories: LabeledValue[];
   dealPipelineStatuses: string[];
   dealStages: DealStage[];
   noteStatuses: NoteStatus[];
+  subscriptionProducts: LabeledValue[];
   taskTypes: LabeledValue[];
   title: string;
   darkModeLogo: string;

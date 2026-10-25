@@ -26,6 +26,17 @@ export const defaultCompanySectors = [
   { value: "utilities", label: "Utilities" },
 ];
 
+export const defaultCompanyCities = [
+  { value: "cairo", label: "Cairo" },
+  { value: "giza", label: "Giza" },
+  { value: "alexandria", label: "Alexandria" },
+];
+
+export const defaultCompanyCompetitors = [
+  { value: "competitor-a", label: "Competitor A" },
+  { value: "competitor-b", label: "Competitor B" },
+];
+
 export const defaultDealStages = [
   { value: "opportunity", label: "Opportunity" },
   { value: "proposal-sent", label: "Proposal Sent" },
@@ -52,6 +63,10 @@ export const defaultNoteStatuses = [
   { value: "in-contract", label: "In Contract", color: "#a4e87d" },
 ];
 
+export const defaultSubscriptionProducts = [
+  { value: "kords-crm", label: "Kords CRM" },
+];
+
 export const defaultTaskTypes = [
   { value: "none", label: "None" },
   { value: "email", label: "Email" },
@@ -65,12 +80,15 @@ export const defaultTaskTypes = [
 ];
 
 export const defaultConfiguration: ConfigurationContextValue = {
+  companyCities: defaultCompanyCities,
+  companyCompetitors: defaultCompanyCompetitors,
   companySectors: defaultCompanySectors,
   currency: defaultCurrency,
   dealCategories: defaultDealCategories,
   dealPipelineStatuses: defaultDealPipelineStatuses,
   dealStages: defaultDealStages,
   noteStatuses: defaultNoteStatuses,
+  subscriptionProducts: defaultSubscriptionProducts,
   taskTypes: defaultTaskTypes,
   title: defaultTitle,
   darkModeLogo: defaultDarkModeLogo,

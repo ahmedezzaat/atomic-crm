@@ -14,6 +14,7 @@ export const frenchCrmMessages = {
         nb_contacts: "Nombre de contacts",
         revenue: "Chiffre d'affaires",
         sector: "Secteur",
+        competitor: "Système concurrent",
         size: "Taille",
         tax_identifier: "Identifiant fiscal",
         address: "Adresse",
@@ -348,6 +349,14 @@ export const frenchCrmMessages = {
         with_pending: "Avec des tâches en attente",
       },
       regarding_contact: "(Concernant : %{name})",
+      regarding_company: "(Entreprise : %{name})",
+      fields_related: "Concerne",
+      status: {
+        open: "Ouvertes",
+        done: "Terminées",
+        all: "Toutes",
+      },
+      list_empty: "Aucune tâche à afficher.",
       updated: "Tâche mise à jour",
     },
     tags: {
@@ -521,6 +530,8 @@ export const frenchCrmMessages = {
       about: "À propos",
       companies: {
         sectors: "Secteurs",
+        cities: "Villes",
+        competitors: "Concurrents",
       },
       dark_mode_logo: "Logo du mode sombre",
       deals: {

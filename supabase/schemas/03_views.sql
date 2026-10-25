@@ -93,7 +93,8 @@ select
     c.tax_identifier,
     c.logo,
     count(distinct d.id) as nb_deals,
-    count(distinct co.id) as nb_contacts
+    count(distinct co.id) as nb_contacts,
+    c.competitor
 from public.companies c
     left join public.deals d on c.id = d.company_id
     left join public.contacts co on c.id = co.company_id
@@ -132,3 +133,24 @@ select count(sub.id) as is_initialized
 from (
     select sales.id from public.sales limit 1
 ) sub;
+
+-- Customers are the companies that have at least one won (non-archived) deal.
+create or replace view public.customers_summary with (security_invoker = on) as
+select
+    c.id,
+    c.name,
+    c.logo,
+    c.city,
+    c.phone_number,
+    c.sector,
+    (select count(*) from public.deals d where d.company_id = c.id and d.stage = 'won' and d.archived_at is null) as nb_won_deals,
+    (select count(*) from public.subscriptions s where s.company_id = c.id) as nb_subscriptions,
+    (select count(*) from public.subscriptions s where s.company_id = c.id and s.end_date >= current_date) as nb_active_subscriptions,
+    coalesce((select sum(s.value) from public.subscriptions s where s.company_id = c.id and s.end_date >= current_date), 0) as active_value,
+    coalesce((select sum(s.nb_users) from public.subscriptions s where s.company_id = c.id and s.end_date >= current_date), 0) as active_users,
+    (select min(s.end_date) from public.subscriptions s where s.company_id = c.id and s.end_date >= current_date) as next_end_date,
+    c.is_customer
+from public.companies c
+where c.is_customer or exists (
+    select 1 from public.deals d where d.company_id = c.id and d.stage = 'won' and d.archived_at is null
+);

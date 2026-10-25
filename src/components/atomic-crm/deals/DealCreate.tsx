@@ -9,6 +9,7 @@ import {
   useRedirect,
   type GetListResult,
 } from "ra-core";
+import { useLocation } from "react-router";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 import { FormToolbar } from "../layout/FormToolbar";
@@ -19,16 +20,18 @@ export const DealCreate = ({ open }: { open: boolean }) => {
   const redirect = useRedirect();
   const dataProvider = useDataProvider();
   const { data: allDeals } = useListContext<Deal>();
+  // when opened from another page (e.g. a company profile), go back there
+  const returnTo: string = useLocation().state?.from ?? "/deals";
 
   const handleClose = () => {
-    redirect("/deals");
+    redirect(returnTo);
   };
 
   const queryClient = useQueryClient();
 
   const onSuccess = async (deal: Deal) => {
     if (!allDeals) {
-      redirect("/deals");
+      redirect(returnTo);
       return;
     }
     // increase the index of all deals in the same stage as the new deal
@@ -67,7 +70,7 @@ export const DealCreate = ({ open }: { open: boolean }) => {
       },
       { updatedAt: now },
     );
-    redirect("/deals");
+    redirect(returnTo);
   };
 
   const { identity } = useGetIdentity();
