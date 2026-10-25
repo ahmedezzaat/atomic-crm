@@ -172,3 +172,12 @@ verify_jwt = false
 verify_jwt = false
 [functions.mcp]
 verify_jwt = false
+
+[functions.sms_send]
+verify_jwt = false
+
+[functions.sms_dlr]
+verify_jwt = false
+
+[functions.sms_settings]
+verify_jwt = false

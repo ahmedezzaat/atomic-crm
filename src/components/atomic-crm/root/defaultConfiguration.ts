@@ -63,6 +63,8 @@ export const defaultNoteStatuses = [
   { value: "in-contract", label: "In Contract", color: "#a4e87d" },
 ];
 
+export const defaultSmsSenders = [{ value: "Sowarna", label: "Sowarna" }];
+
 export const defaultSubscriptionProducts = [
   { value: "kords-crm", label: "Kords CRM" },
 ];
@@ -88,6 +90,7 @@ export const defaultConfiguration: ConfigurationContextValue = {
   dealPipelineStatuses: defaultDealPipelineStatuses,
   dealStages: defaultDealStages,
   noteStatuses: defaultNoteStatuses,
+  smsSenders: defaultSmsSenders,
   subscriptionProducts: defaultSubscriptionProducts,
   taskTypes: defaultTaskTypes,
   title: defaultTitle,

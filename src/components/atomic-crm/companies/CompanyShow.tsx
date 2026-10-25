@@ -1,9 +1,10 @@
+import { useState } from "react";
 import { ReferenceManyField } from "@/components/admin/reference-many-field";
 import { SortButton } from "@/components/admin/sort-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, UserPlus } from "lucide-react";
+import { MessageSquareText, Plus, UserPlus } from "lucide-react";
 import {
   RecordContextProvider,
   ShowBase,
@@ -22,6 +23,7 @@ import {
 } from "react-router";
 
 import { useIsMobile } from "@/hooks/use-mobile";
+import { SendSmsDialog } from "../sms/SendSmsDialog";
 import { AddTask } from "../tasks/AddTask";
 import { TasksIterator } from "../tasks/TasksIterator";
 import { ActivityLog } from "../activity/ActivityLog";
@@ -92,6 +94,7 @@ const CompanyShowContent = () => {
   const translate = useTranslate();
   const { record, isPending } = useShowContext<Company>();
   const navigate = useNavigate();
+  const [smsOpen, setSmsOpen] = useState(false);
 
   // Get tab from URL or default to "activity"
   const tabMatch = useMatch("/companies/:id/show/:tab");
@@ -118,6 +121,25 @@ const CompanyShowContent = () => {
               <h5 className="text-xl font-semibold ml-2 flex-1">
                 {record.name}
               </h5>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!record.phone_number}
+                title={
+                  record.phone_number
+                    ? undefined
+                    : "This company has no phone number"
+                }
+                onClick={() => setSmsOpen(true)}
+              >
+                <MessageSquareText className="h-4 w-4" />
+                Send SMS
+              </Button>
+              <SendSmsDialog
+                company={record}
+                open={smsOpen}
+                close={() => setSmsOpen(false)}
+              />
             </div>
             <Tabs defaultValue={currentTab} onValueChange={handleTabChange}>
               <TabsList className="grid w-full grid-cols-4">

@@ -173,3 +173,18 @@ grant all on sequence public.subscriptions_id_seq to service_role;
 grant all on table public.customers_summary to anon;
 grant all on table public.customers_summary to authenticated;
 grant all on table public.customers_summary to service_role;
+
+grant all on table public.sms_campaigns to authenticated;
+grant all on table public.sms_campaigns to service_role;
+grant select on table public.sms_messages to authenticated;
+grant all on table public.sms_messages to service_role;
+grant all on sequence public.sms_campaigns_id_seq to authenticated;
+grant all on sequence public.sms_campaigns_id_seq to service_role;
+grant all on sequence public.sms_messages_id_seq to service_role;
+
+grant all on table public.sms_campaigns_summary to authenticated;
+grant all on table public.sms_campaigns_summary to service_role;
+
+revoke all on table public.integration_secrets from anon;
+revoke all on table public.integration_secrets from authenticated;
+grant all on table public.integration_secrets to service_role;

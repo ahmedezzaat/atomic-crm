@@ -154,3 +154,15 @@ from public.companies c
 where c.is_customer or exists (
     select 1 from public.deals d where d.company_id = c.id and d.stage = 'won' and d.archived_at is null
 );
+
+-- Campaign progress, derived from the per-recipient messages.
+create or replace view public.sms_campaigns_summary with (security_invoker = on) as
+select
+    c.*,
+    count(m.id) as nb_messages,
+    count(m.id) filter (where m.status in ('sent', 'delivered')) as nb_sent,
+    count(m.id) filter (where m.status = 'delivered') as nb_delivered,
+    count(m.id) filter (where m.status in ('undelivered', 'failed')) as nb_failed
+from public.sms_campaigns c
+    left join public.sms_messages m on m.campaign_id = c.id
+group by c.id;

@@ -22,6 +22,8 @@ import { MobileDashboard } from "../dashboard/MobileDashboard";
 import deals from "../deals";
 import tasks from "../tasks";
 import customers from "../customers";
+import { SmsCampaignList } from "../sms/SmsCampaignList";
+import { SmsCampaignForm } from "../sms/SmsCampaignForm";
 import { Layout } from "../layout/Layout";
 import { MobileLayout } from "../layout/MobileLayout";
 import { SignupPage } from "../login/SignupPage";
@@ -52,6 +54,7 @@ import {
   defaultDealStages,
   defaultLightModeLogo,
   defaultNoteStatuses,
+  defaultSmsSenders,
   defaultSubscriptionProducts,
   defaultTaskTypes,
   defaultTitle,
@@ -132,6 +135,7 @@ export const CRM = ({
   darkModeLogo = defaultDarkModeLogo,
   lightModeLogo = defaultLightModeLogo,
   noteStatuses = defaultNoteStatuses,
+  smsSenders = defaultSmsSenders,
   subscriptionProducts = defaultSubscriptionProducts,
   taskTypes = defaultTaskTypes,
   title = defaultTitle,
@@ -169,6 +173,7 @@ export const CRM = ({
         dealPipelineStatuses,
         dealStages,
         noteStatuses,
+        smsSenders,
         subscriptionProducts,
         taskTypes,
         title,
@@ -272,6 +277,9 @@ const DesktopAdmin = (
       <CustomRoutes>
         <Route path={ProfilePage.path} element={<ProfilePage />} />
         <Route path={SettingsPage.path} element={<SettingsPage />} />
+        <Route path="/sms" element={<SmsCampaignList />} />
+        <Route path="/sms/new" element={<SmsCampaignForm />} />
+        <Route path="/sms/:id" element={<SmsCampaignForm />} />
         <Route path={ImportPage.path} element={<ImportPage />} />
         <Route path={ChangelogPage.path} element={<ChangelogPage />} />
       </CustomRoutes>
@@ -283,6 +291,8 @@ const DesktopAdmin = (
       <Resource name="tasks" {...tasks} />
       <Resource name="customers" {...customers} />
       <Resource name="subscriptions" />
+      <Resource name="sms_campaigns" />
+      <Resource name="sms_messages" />
       <Resource name="sales" {...sales} />
       <Resource name="tags" />
     </Admin>

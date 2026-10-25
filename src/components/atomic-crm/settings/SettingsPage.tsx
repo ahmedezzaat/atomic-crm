@@ -1,4 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
+import { SmsSettingsCard } from "./SmsSettingsCard";
 import { RotateCcw, Save } from "lucide-react";
 import type { RaRecord } from "ra-core";
 import {
@@ -128,6 +129,7 @@ const transformFormValues = (data: Record<string, any>) => ({
     companyCompetitors: ensureValues(data.companyCompetitors),
     companySectors: ensureValues(data.companySectors),
     dealCategories: ensureValues(data.dealCategories),
+    smsSenders: ensureValues(data.smsSenders),
     subscriptionProducts: ensureValues(data.subscriptionProducts),
     taskTypes: ensureValues(data.taskTypes),
     dealStages: ensureValues(data.dealStages),
@@ -179,6 +181,7 @@ const SettingsForm = () => {
       companyCompetitors: config.companyCompetitors,
       companySectors: config.companySectors,
       dealCategories: config.dealCategories,
+      smsSenders: config.smsSenders,
       subscriptionProducts: config.subscriptionProducts,
       taskTypes: config.taskTypes,
       dealStages: config.dealStages,
@@ -381,6 +384,8 @@ const SettingsFormFields = () => {
             </ArrayInput>
           </CardContent>
         </Card>
+
+        <SmsSettingsCard />
 
         {/* Deals */}
         <Card id="deals">

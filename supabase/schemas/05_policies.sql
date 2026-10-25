@@ -74,3 +74,14 @@ create policy "Enable read access for authenticated users" on public.subscriptio
 create policy "Enable insert for authenticated users only" on public.subscriptions for insert to authenticated with check (true);
 create policy "Subscription Update Policy" on public.subscriptions for update to authenticated using (true);
 create policy "Subscription Delete Policy" on public.subscriptions for delete to authenticated using (true);
+
+alter table public.sms_campaigns enable row level security;
+alter table public.sms_messages enable row level security;
+
+create policy "Enable read access for authenticated users" on public.sms_campaigns for select to authenticated using (true);
+create policy "Enable insert for authenticated users only" on public.sms_campaigns for insert to authenticated with check (true);
+create policy "SMS Campaign Update Policy" on public.sms_campaigns for update to authenticated using (true);
+create policy "SMS Campaign Delete Policy" on public.sms_campaigns for delete to authenticated using (true);
+create policy "Enable read access for authenticated users" on public.sms_messages for select to authenticated using (true);
+
+alter table public.integration_secrets enable row level security;

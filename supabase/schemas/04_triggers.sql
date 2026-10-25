@@ -83,3 +83,7 @@ create or replace trigger on_auth_user_created
 create or replace trigger on_auth_user_updated
     after update on auth.users
     for each row execute function public.handle_update_user();
+
+create or replace trigger set_sms_campaign_sales_id_trigger
+    before insert on public.sms_campaigns
+    for each row execute function public.set_sales_id_default();

@@ -15,6 +15,7 @@ export interface ConfigurationContextValue {
   dealPipelineStatuses: string[];
   dealStages: DealStage[];
   noteStatuses: NoteStatus[];
+  smsSenders: LabeledValue[];
   subscriptionProducts: LabeledValue[];
   taskTypes: LabeledValue[];
   title: string;
