@@ -63,6 +63,16 @@ function formatDeliveryTime(iso: string) {
   return new Date(iso).toISOString().slice(0, 19).replace("T", " ");
 }
 
+// Cequens "unicode" messages carry the text as UCS-2 (UTF-16 big-endian) hex,
+// e.g. "مرحبا" -> "06450631062D06280627". Plain text is sent as is.
+export function toUcs2Hex(text: string): string {
+  let hex = "";
+  for (let i = 0; i < text.length; i++) {
+    hex += text.charCodeAt(i).toString(16).toUpperCase().padStart(4, "0");
+  }
+  return hex;
+}
+
 async function sendOne(opts: {
   body: string;
   sender: string;
@@ -75,7 +85,7 @@ async function sendOne(opts: {
 
   const unicode = [...opts.body].some((ch) => ch.charCodeAt(0) > 127);
   const payload: Record<string, unknown> = {
-    messageText: opts.body,
+    messageText: unicode ? toUcs2Hex(opts.body) : opts.body,
     senderName: opts.sender,
     messageType: unicode ? "unicode" : "text",
     recipients: opts.phone,
