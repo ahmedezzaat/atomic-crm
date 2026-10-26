@@ -188,3 +188,10 @@ grant all on table public.sms_campaigns_summary to service_role;
 revoke all on table public.integration_secrets from anon;
 revoke all on table public.integration_secrets from authenticated;
 grant all on table public.integration_secrets to service_role;
+
+grant all on table public.company_tags to anon;
+grant all on table public.company_tags to authenticated;
+grant all on table public.company_tags to service_role;
+grant all on sequence public.company_tags_id_seq to anon;
+grant all on sequence public.company_tags_id_seq to authenticated;
+grant all on sequence public.company_tags_id_seq to service_role;

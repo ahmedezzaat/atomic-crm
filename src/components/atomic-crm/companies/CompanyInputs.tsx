@@ -1,6 +1,8 @@
 import { required, useRecordContext, useTranslate } from "ra-core";
+import { ReferenceArrayInput } from "@/components/admin/reference-array-input";
 import { ReferenceInput } from "@/components/admin/reference-input";
 import { TextInput } from "@/components/admin/text-input";
+import { AutocompleteArrayInput } from "@/components/admin/autocomplete-array-input";
 import { SelectInput } from "@/components/admin/select-input";
 import { ArrayInput } from "@/components/admin/array-input";
 import { SimpleFormIterator } from "@/components/admin/simple-form-iterator";
@@ -90,7 +92,8 @@ const CompanyContactInputs = () => {
 
 const CompanyContextInputs = () => {
   const translate = useTranslate();
-  const { companySectors, companyCompetitors } = useConfigurationContext();
+  const { companySectors, companyCompetitors, companyLeadSources } =
+    useConfigurationContext();
   const translatedSizes = sizes.map((size) => ({
     ...size,
     name: getTranslatedCompanySizeLabel(size, translate),
@@ -111,6 +114,13 @@ const CompanyContextInputs = () => {
       />
       <SelectInput source="size" choices={translatedSizes} helperText={false} />
       <SelectInput
+        source="lead_source"
+        choices={companyLeadSources}
+        optionText="label"
+        optionValue="value"
+        helperText={false}
+      />
+      <SelectInput
         source="competitor"
         choices={companyCompetitors}
         optionText="label"
@@ -123,7 +133,7 @@ const CompanyContextInputs = () => {
 
 const CompanyAddressInputs = () => {
   const translate = useTranslate();
-  const { companyCities } = useConfigurationContext();
+  const { companyCities, companyCountries } = useConfigurationContext();
   return (
     <div className="flex flex-col gap-4">
       <h6 className="text-lg font-semibold">
@@ -139,7 +149,13 @@ const CompanyAddressInputs = () => {
         optionValue="label"
         helperText={false}
       />
-      <TextInput source="country" helperText={false} />
+      <SelectInput
+        source="country"
+        choices={companyCountries}
+        optionText="label"
+        optionValue="label"
+        helperText={false}
+      />
     </div>
   );
 };
@@ -153,6 +169,13 @@ const CompanyAdditionalInformationInputs = () => {
           _: "Additional information",
         })}
       </h6>
+      <ReferenceArrayInput source="tags" reference="company_tags">
+        <AutocompleteArrayInput
+          label="resources.company_tags.name"
+          optionText="name"
+          helperText={false}
+        />
+      </ReferenceArrayInput>
       <TextInput source="description" multiline helperText={false} />
       <ArrayInput source="context_links" helperText={false}>
         <SimpleFormIterator disableReordering fullWidth getItemLabel={false}>

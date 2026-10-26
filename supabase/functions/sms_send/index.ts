@@ -112,10 +112,12 @@ async function sendOne(opts: {
       return id ? { id } : { error: "No message id returned" };
     }
     const detail = json?.error?.internalErrors?.[0];
+    // Keep Cequens' request id so their support can trace a rejected message
+    const reason = detail
+      ? `${detail.code}: ${detail.details}`
+      : (json?.replyMessage ?? `HTTP ${response.status}`);
     return {
-      error: detail
-        ? `${detail.code}: ${detail.details}`
-        : (json?.replyMessage ?? `HTTP ${response.status}`),
+      error: json?.requestId ? `${reason} (request ${json.requestId})` : reason,
     };
   }
   return { error: "Unauthorized" };

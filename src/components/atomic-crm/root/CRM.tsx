@@ -46,6 +46,8 @@ import type { CrmDataProvider } from "../providers/types";
 import {
   defaultCompanyCities,
   defaultCompanyCompetitors,
+  defaultCompanyCountries,
+  defaultCompanyLeadSources,
   defaultCompanySectors,
   defaultCurrency,
   defaultDarkModeLogo,
@@ -87,6 +89,8 @@ export type CRMProps = {
  * default configurations and themes but allows for customization through props. The component
  * seeds the store with any custom prop values for backwards compatibility.
  *
+ * @param {LabeledValue[]} companyCountries - The countries selectable on a company.
+ * @param {LabeledValue[]} companyLeadSources - Where a company lead came from.
  * @param {LabeledValue[]} companyCompetitors - The competitor systems a company can be logged as using.
  * @param {LabeledValue[]} companyCities - The list of cities selectable on a company.
  * @param {LabeledValue[]} companySectors - The list of company sectors used in the application.
@@ -127,6 +131,8 @@ export type CRMProps = {
 export const CRM = ({
   companyCities = defaultCompanyCities,
   companyCompetitors = defaultCompanyCompetitors,
+  companyCountries = defaultCompanyCountries,
+  companyLeadSources = defaultCompanyLeadSources,
   companySectors = defaultCompanySectors,
   currency = defaultCurrency,
   dealCategories = defaultDealCategories,
@@ -167,6 +173,8 @@ export const CRM = ({
       store.setItem(CONFIGURATION_STORE_KEY, {
         companyCities,
         companyCompetitors,
+        companyCountries,
+        companyLeadSources,
         companySectors,
         currency,
         dealCategories,
@@ -295,6 +303,7 @@ const DesktopAdmin = (
       <Resource name="sms_messages" />
       <Resource name="sales" {...sales} />
       <Resource name="tags" />
+      <Resource name="company_tags" />
     </Admin>
   );
 };

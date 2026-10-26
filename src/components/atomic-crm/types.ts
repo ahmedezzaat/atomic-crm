@@ -73,6 +73,8 @@ export type Company = {
   nb_contacts?: number;
   nb_deals?: number;
   competitor?: string;
+  lead_source?: string;
+  tags?: number[];
   is_customer?: boolean;
 } & Pick<RaRecord, "id">;
 

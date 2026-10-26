@@ -28,6 +28,7 @@ import {
   type ConfigurationContextValue,
 } from "../root/ConfigurationContext";
 import { defaultConfiguration } from "../root/defaultConfiguration";
+import { SettingsCompanyTags } from "./SettingsCompanyTags";
 import { SettingsTags } from "./SettingsTags";
 
 const SECTIONS = [
@@ -45,6 +46,11 @@ const SECTIONS = [
   { id: "notes", label: "resources.notes.name", fallback: "Notes" },
   { id: "tasks", label: "resources.tasks.name", fallback: "Tasks" },
   { id: "tags", label: "resources.tags.name", fallback: "Tags" },
+  {
+    id: "company-tags",
+    label: "resources.company_tags.name",
+    fallback: "Company tags",
+  },
 ];
 
 /** Ensure every item in a { value, label } array has a value (slug from label). */
@@ -127,6 +133,8 @@ const transformFormValues = (data: Record<string, any>) => ({
     currency: data.currency,
     companyCities: ensureValues(data.companyCities),
     companyCompetitors: ensureValues(data.companyCompetitors),
+    companyCountries: ensureValues(data.companyCountries),
+    companyLeadSources: ensureValues(data.companyLeadSources),
     companySectors: ensureValues(data.companySectors),
     dealCategories: ensureValues(data.dealCategories),
     smsSenders: ensureValues(data.smsSenders),
@@ -179,6 +187,8 @@ const SettingsForm = () => {
       currency: config.currency,
       companyCities: config.companyCities,
       companyCompetitors: config.companyCompetitors,
+      companyCountries: config.companyCountries,
+      companyLeadSources: config.companyLeadSources,
       companySectors: config.companySectors,
       dealCategories: config.dealCategories,
       smsSenders: config.smsSenders,
@@ -358,6 +368,30 @@ const SettingsFormFields = () => {
                 <TextInput source="label" label={false} />
               </SimpleFormIterator>
             </ArrayInput>
+            <h3 className="text-lg font-medium text-muted-foreground">
+              {translate("crm.settings.companies.countries")}
+            </h3>
+            <ArrayInput
+              source="companyCountries"
+              label={false}
+              helperText={false}
+            >
+              <SimpleFormIterator disableReordering disableClear>
+                <TextInput source="label" label={false} />
+              </SimpleFormIterator>
+            </ArrayInput>
+            <h3 className="text-lg font-medium text-muted-foreground">
+              {translate("crm.settings.companies.lead_sources")}
+            </h3>
+            <ArrayInput
+              source="companyLeadSources"
+              label={false}
+              helperText={false}
+            >
+              <SimpleFormIterator disableReordering disableClear>
+                <TextInput source="label" label={false} />
+              </SimpleFormIterator>
+            </ArrayInput>
           </CardContent>
         </Card>
 
@@ -522,6 +556,9 @@ const SettingsFormFields = () => {
 
         {/* Tags */}
         <SettingsTags />
+
+        {/* Company tags */}
+        <SettingsCompanyTags />
       </div>
 
       {/* Sticky save button */}

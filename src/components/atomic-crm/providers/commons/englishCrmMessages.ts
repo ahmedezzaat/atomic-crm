@@ -13,6 +13,7 @@ export const englishCrmMessages = {
         revenue: "Revenue",
         sector: "Sector",
         competitor: "Competitor system",
+        lead_source: "Lead source",
         size: "Size",
         tax_identifier: "Tax Identifier",
         address: "Address",
@@ -176,6 +177,9 @@ export const englishCrmMessages = {
         empty_hint: 'Contacts with a "hot" status will appear here.',
         title: "Hot Contacts",
       },
+    },
+    company_tags: {
+      name: "Company tags",
     },
     deals: {
       name: "Deal |||| Deals",
@@ -523,6 +527,8 @@ export const englishCrmMessages = {
         sectors: "Sectors",
         cities: "Cities",
         competitors: "Competitors",
+        countries: "Countries",
+        lead_sources: "Lead sources",
       },
       dark_mode_logo: "Dark Mode Logo",
       deals: {

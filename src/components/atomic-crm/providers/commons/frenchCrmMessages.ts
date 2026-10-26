@@ -15,6 +15,7 @@ export const frenchCrmMessages = {
         revenue: "Chiffre d'affaires",
         sector: "Secteur",
         competitor: "Système concurrent",
+        lead_source: "Source du lead",
         size: "Taille",
         tax_identifier: "Identifiant fiscal",
         address: "Adresse",
@@ -180,6 +181,9 @@ export const frenchCrmMessages = {
         empty_hint: 'Les contacts avec un statut "chaud" apparaîtront ici.',
         title: "Contacts chauds",
       },
+    },
+    company_tags: {
+      name: "Tags entreprise",
     },
     deals: {
       name: "Affaire |||| Affaires",
@@ -532,6 +536,8 @@ export const frenchCrmMessages = {
         sectors: "Secteurs",
         cities: "Villes",
         competitors: "Concurrents",
+        countries: "Pays",
+        lead_sources: "Sources de leads",
       },
       dark_mode_logo: "Logo du mode sombre",
       deals: {

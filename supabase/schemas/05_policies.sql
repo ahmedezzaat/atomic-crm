@@ -85,3 +85,10 @@ create policy "SMS Campaign Delete Policy" on public.sms_campaigns for delete to
 create policy "Enable read access for authenticated users" on public.sms_messages for select to authenticated using (true);
 
 alter table public.integration_secrets enable row level security;
+
+alter table public.company_tags enable row level security;
+
+create policy "Enable read access for authenticated users" on public.company_tags for select to authenticated using (true);
+create policy "Enable insert for authenticated users only" on public.company_tags for insert to authenticated with check (true);
+create policy "Company Tag Update Policy" on public.company_tags for update to authenticated using (true);
+create policy "Company Tag Delete Policy" on public.company_tags for delete to authenticated using (true);

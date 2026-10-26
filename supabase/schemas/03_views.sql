@@ -94,7 +94,9 @@ select
     c.logo,
     count(distinct d.id) as nb_deals,
     count(distinct co.id) as nb_contacts,
-    c.competitor
+    c.competitor,
+    c.lead_source,
+    c.tags
 from public.companies c
     left join public.deals d on c.id = d.company_id
     left join public.contacts co on c.id = co.company_id

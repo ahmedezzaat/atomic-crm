@@ -37,6 +37,10 @@ export const defaultCompanyCompetitors = [
   { value: "competitor-b", label: "Competitor B" },
 ];
 
+export const defaultCompanyCountries = [{ value: "egypt", label: "Egypt" }];
+
+export const defaultCompanyLeadSources = [{ value: "nara", label: "NARA" }];
+
 export const defaultDealStages = [
   { value: "opportunity", label: "Opportunity" },
   { value: "proposal-sent", label: "Proposal Sent" },
@@ -84,6 +88,8 @@ export const defaultTaskTypes = [
 export const defaultConfiguration: ConfigurationContextValue = {
   companyCities: defaultCompanyCities,
   companyCompetitors: defaultCompanyCompetitors,
+  companyCountries: defaultCompanyCountries,
+  companyLeadSources: defaultCompanyLeadSources,
   companySectors: defaultCompanySectors,
   currency: defaultCurrency,
   dealCategories: defaultDealCategories,

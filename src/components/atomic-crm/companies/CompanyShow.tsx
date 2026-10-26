@@ -23,6 +23,7 @@ import {
 } from "react-router";
 
 import { useIsMobile } from "@/hooks/use-mobile";
+import { CompanyTagsList } from "./CompanyTagsList";
 import { SendSmsDialog } from "../sms/SendSmsDialog";
 import { AddTask } from "../tasks/AddTask";
 import { TasksIterator } from "../tasks/TasksIterator";
@@ -118,9 +119,10 @@ const CompanyShowContent = () => {
           <CardContent>
             <div className="flex mb-3">
               <CompanyAvatar />
-              <h5 className="text-xl font-semibold ml-2 flex-1">
-                {record.name}
-              </h5>
+              <div className="ml-2 flex-1">
+                <h5 className="text-xl font-semibold">{record.name}</h5>
+                <CompanyTagsList />
+              </div>
               <Button
                 variant="outline"
                 size="sm"
