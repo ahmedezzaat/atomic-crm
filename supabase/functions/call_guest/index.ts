@@ -21,19 +21,24 @@ Deno.serve((req: Request) =>
     if (req.method !== "POST") {
       return createErrorResponse(405, "Method Not Allowed");
     }
-    const { guest_key } = await req.json().catch(() => ({}));
+    const { guest_key, info } = await req.json().catch(() => ({}));
     if (typeof guest_key !== "string" || guest_key.length < 16) {
       return createErrorResponse(400, "Invalid link");
     }
 
     const { data: call } = await supabaseAdmin
       .from("calls")
-      .select("id,title,channel,status,company_id")
+      .select("id,title,channel,status,company_id,recording")
       .eq("guest_key", guest_key)
       .maybeSingle();
     if (!call) return createErrorResponse(404, "This call link is not valid");
     if (call.status === "ended") {
       return createErrorResponse(410, "This call has ended");
+    }
+
+    // The join page asks this first, to tell the guest if the call is recorded
+    if (info) {
+      return json({ title: call.title, recording: call.recording });
     }
 
     const credentials = await getAgoraCredentials();
@@ -54,6 +59,7 @@ Deno.serve((req: Request) =>
       uid,
       token: buildRtcToken(credentials, call.channel, uid),
       title: call.title,
+      recording: call.recording,
     });
   }),
 );

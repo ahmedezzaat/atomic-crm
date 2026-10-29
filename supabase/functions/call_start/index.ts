@@ -43,6 +43,7 @@ Deno.serve(async (req: Request) =>
               contact_id: body.contact_id ?? null,
               channel: `kords-${crypto.randomUUID().replaceAll("-", "")}`,
               guest_key: crypto.randomUUID().replaceAll("-", ""),
+              recording: body.recording !== false,
               sales_id: sale.id,
             })
             .select("*")
@@ -91,6 +92,7 @@ Deno.serve(async (req: Request) =>
             uid,
             token: buildRtcToken(credentials, call.channel, uid),
             name: `${sale.first_name} ${sale.last_name}`.trim(),
+            recording: call.recording,
           });
         }
 

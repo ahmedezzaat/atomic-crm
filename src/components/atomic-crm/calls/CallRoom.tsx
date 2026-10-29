@@ -18,7 +18,8 @@ import type {
 } from "agora-rtc-sdk-ng";
 import { Button } from "@/components/ui/button";
 
-import type { CallCredentials } from "./callApi";
+import { uploadAndProcessRecording, type CallCredentials } from "./callApi";
+import { CallRecorder } from "./callRecorder";
 
 type Props = {
   credentials: CallCredentials;
@@ -26,6 +27,10 @@ type Props = {
   onLeave: () => void;
   /** Shown to the host only: ends the call for everyone and kills the link */
   onEnd?: () => void;
+  /** The host's browser records the call; guests only see the indicator */
+  recording?: boolean;
+  /** Set for the host: the recording is saved and summarised for this call */
+  hostCallId?: number;
 };
 
 /**
@@ -37,7 +42,11 @@ export const CallRoom = ({
   withCamera,
   onLeave,
   onEnd,
+  recording = false,
+  hostCallId,
 }: Props) => {
+  const recorderRef = useRef<CallRecorder | undefined>(undefined);
+  const [saving, setSaving] = useState(false);
   const localRef = useRef<HTMLDivElement>(null);
   const remoteRef = useRef<HTMLDivElement>(null);
   const clientRef = useRef<IAgoraRTCClient | undefined>(undefined);
@@ -71,7 +80,9 @@ export const CallRoom = ({
         client.on("user-published", async (user, mediaType) => {
           await client.subscribe(user, mediaType);
           if (mediaType === "audio") {
-            (user.audioTrack as IRemoteAudioTrack).play();
+            const remoteAudio = user.audioTrack as IRemoteAudioTrack;
+            remoteAudio.play();
+            recorderRef.current?.addTrack(remoteAudio.getMediaStreamTrack());
           } else {
             remoteVideoRef.current = user.videoTrack;
             setRemoteHasVideo(true);
@@ -109,6 +120,16 @@ export const CallRoom = ({
           }
         }
         await client.publish(tracks);
+        if (hostCallId && recording) {
+          try {
+            const recorder = new CallRecorder();
+            recorder.addTrack(mic.getMediaStreamTrack());
+            recorder.start();
+            recorderRef.current = recorder;
+          } catch (e) {
+            setError(`Recording is unavailable: ${(e as Error).message}`);
+          }
+        }
         if (!cancelled) setStatus("live");
       } catch (e) {
         if (cancelled) return;
@@ -120,6 +141,7 @@ export const CallRoom = ({
 
     return () => {
       cancelled = true;
+      recorderRef.current?.stop().catch(() => undefined);
       micRef.current?.close();
       camRef.current?.close();
       screenRef.current?.close();
@@ -195,7 +217,37 @@ export const CallRoom = ({
     }
   };
 
-  const leave = () => onLeave();
+  // Stops the recording, saves it and starts the transcript and summary
+  const finish = async () => {
+    const recorder = recorderRef.current;
+    recorderRef.current = undefined;
+    if (!recorder || !hostCallId) return;
+    setSaving(true);
+    try {
+      const result = await recorder.stop();
+      if (result && result.blob.size > 2000) {
+        await uploadAndProcessRecording(
+          hostCallId,
+          result.blob,
+          result.extension,
+        );
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const leave = async () => {
+    await finish();
+    onLeave();
+  };
+
+  const endForEveryone = async () => {
+    await finish();
+    onEnd?.();
+  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -220,6 +272,17 @@ export const CallRoom = ({
             </div>
           )}
         </div>
+        {recording && (
+          <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded bg-black/60 px-2 py-1 text-xs text-white">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+            Recording
+          </div>
+        )}
+        {saving && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/70 text-sm text-white">
+            Saving the recording…
+          </div>
+        )}
         {sharing && (
           <div className="absolute left-3 top-3 rounded bg-red-600 px-2 py-1 text-xs text-white">
             You are sharing your screen
@@ -256,12 +319,16 @@ export const CallRoom = ({
           <MonitorUp className="h-4 w-4" />
           {sharing ? "Stop sharing" : "Share screen"}
         </Button>
-        <Button variant="outline" onClick={leave}>
+        <Button variant="outline" onClick={leave} disabled={saving}>
           <PhoneOff className="h-4 w-4" />
           Leave
         </Button>
         {onEnd && (
-          <Button variant="destructive" onClick={onEnd}>
+          <Button
+            variant="destructive"
+            onClick={endForEveryone}
+            disabled={saving}
+          >
             End call for everyone
           </Button>
         )}

@@ -24,6 +24,7 @@ import {
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { StartCallButton } from "../calls/StartCallButton";
+import { CompanyCallsTab } from "./CompanyCallsTab";
 import { CompanyTagsList } from "./CompanyTagsList";
 import { SendSmsDialog } from "../sms/SendSmsDialog";
 import { AddTask } from "../tasks/AddTask";
@@ -146,7 +147,7 @@ const CompanyShowContent = () => {
               />
             </div>
             <Tabs defaultValue={currentTab} onValueChange={handleTabChange}>
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="activity">
                   {translate("crm.common.activity")}
                 </TabsTrigger>
@@ -157,6 +158,7 @@ const CompanyShowContent = () => {
                         smart_count: record.nb_contacts ?? 0,
                       })}
                 </TabsTrigger>
+                <TabsTrigger value="calls">Calls</TabsTrigger>
                 <TabsTrigger value="tasks">
                   {translate("resources.tasks.name", { smart_count: 2 })}
                 </TabsTrigger>
@@ -166,6 +168,9 @@ const CompanyShowContent = () => {
                   })}
                 </TabsTrigger>
               </TabsList>
+              <TabsContent value="calls">
+                <CompanyCallsTab companyId={record.id} />
+              </TabsContent>
               <TabsContent value="tasks" className="pt-2">
                 <div className="flex flex-row justify-end mt-1">
                   <AddTask forCompany />

@@ -8,7 +8,12 @@ import { Label } from "@/components/ui/label";
 import { getSupabaseClient } from "../providers/supabase/supabase";
 
 type Hint = { set: boolean; hint: string };
-type Status = { app_id: Hint; app_certificate: Hint };
+type Status = {
+  app_id: Hint;
+  app_certificate: Hint;
+  openai_api_key: Hint;
+  anthropic_api_key: Hint;
+};
 
 const FIELDS = [
   {
@@ -21,6 +26,16 @@ const FIELDS = [
     label: "Agora App Certificate",
     help: "Enable the primary certificate on the project in the Agora console, then copy it here.",
   },
+  {
+    key: "openai_api_key",
+    label: "OpenAI API key (call transcripts)",
+    help: "Used to turn call recordings into text (Whisper).",
+  },
+  {
+    key: "anthropic_api_key",
+    label: "Anthropic API key (call summaries)",
+    help: "Used by Claude to write the summary, key points and action items.",
+  },
 ] as const;
 
 /**
@@ -30,7 +45,12 @@ const FIELDS = [
 export const CallSettingsCard = () => {
   const notify = useNotify();
   const [status, setStatus] = useState<Status>();
-  const [values, setValues] = useState({ app_id: "", app_certificate: "" });
+  const [values, setValues] = useState({
+    app_id: "",
+    app_certificate: "",
+    openai_api_key: "",
+    anthropic_api_key: "",
+  });
   const [saving, setSaving] = useState(false);
 
   const call = async (body: Record<string, unknown>) => {
@@ -55,7 +75,12 @@ export const CallSettingsCard = () => {
     setSaving(true);
     try {
       setStatus(await call({ action: "save", ...values }));
-      setValues({ app_id: "", app_certificate: "" });
+      setValues({
+        app_id: "",
+        app_certificate: "",
+        openai_api_key: "",
+        anthropic_api_key: "",
+      });
       notify("Call credentials saved");
     } catch (e) {
       notify(`Could not save: ${(e as Error).message}`, { type: "error" });

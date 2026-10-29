@@ -1,5 +1,5 @@
 import { ArrowLeft, Copy } from "lucide-react";
-import { useGetOne, useNotify, useTranslate } from "ra-core";
+import { useGetOne, useNotify, useTranslate, useUpdate } from "ra-core";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import {
   type CallCredentials,
   type CallRecord,
 } from "./callApi";
+import { CallResults } from "./CallResults";
 import { CallRoom } from "./CallRoom";
 
 /** Staff side of one call: copy the link, join and run the call. */
@@ -22,9 +23,21 @@ export const CallPage = () => {
   const navigate = useNavigate();
   const notify = useNotify();
   const translate = useTranslate();
-  const { data: call, refetch } = useGetOne<CallRecord>("calls", {
-    id: Number(id),
-  });
+  const { data: call, refetch } = useGetOne<CallRecord>(
+    "calls",
+    { id: Number(id) },
+    {
+      // follow the transcript and summary while they are being written
+      refetchInterval: (query) =>
+        ["uploading", "transcribing", "summarizing"].includes(
+          query.state.data?.processing_status ?? "",
+        )
+          ? 3000
+          : false,
+    },
+  );
+  const [update] = useUpdate();
+  const [record, setRecord] = useState<boolean>();
   const { data: company } = useGetOne<Company>(
     "companies",
     { id: call?.company_id as number },
@@ -40,6 +53,19 @@ export const CallPage = () => {
   const join = async () => {
     setBusy(true);
     try {
+      // the choice is stored on the call so the guest is told before joining
+      const wantRecording = record ?? call.recording;
+      if (wantRecording !== call.recording) {
+        await update(
+          "calls",
+          {
+            id: call.id,
+            data: { recording: wantRecording },
+            previousData: call,
+          },
+          { returnPromise: true },
+        );
+      }
       setCredentials(await joinCall(call.id));
       refetch();
     } catch (e) {
@@ -119,7 +145,12 @@ export const CallPage = () => {
         <CallRoom
           credentials={credentials}
           withCamera={withCamera}
-          onLeave={() => setCredentials(undefined)}
+          recording={credentials.recording}
+          hostCallId={call.id}
+          onLeave={() => {
+            setCredentials(undefined);
+            refetch();
+          }}
           onEnd={end}
         />
       ) : (
@@ -133,12 +164,23 @@ export const CallPage = () => {
               />
               Turn my camera on (uncheck for voice only)
             </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={record ?? call.recording}
+                onChange={(e) => setRecord(e.target.checked)}
+              />
+              Record this call, with a transcript and AI summary (the other
+              person is told it is recorded)
+            </label>
             <Button disabled={busy} onClick={join}>
               {busy ? "Joining…" : "Join call"}
             </Button>
           </CardContent>
         </Card>
       )}
+
+      <CallResults call={call} onChanged={refetch} />
     </div>
   );
 };

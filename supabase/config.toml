@@ -190,3 +190,6 @@ verify_jwt = false
 
 [functions.call_guest]
 verify_jwt = false
+
+[functions.call_process]
+verify_jwt = false

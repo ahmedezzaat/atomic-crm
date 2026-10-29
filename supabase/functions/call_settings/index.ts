@@ -10,6 +10,8 @@ import { getSecret, setSecret } from "../_shared/integrationSecrets.ts";
 const FIELDS = {
   app_id: "agora_app_id",
   app_certificate: "agora_app_certificate",
+  openai_api_key: "openai_api_key",
+  anthropic_api_key: "anthropic_api_key",
 } as const;
 
 const hint = (value?: string) =>
@@ -45,6 +47,12 @@ Deno.serve(async (req: Request) =>
           app_id: hint(await getSecret(FIELDS.app_id, "AGORA_APP_ID")),
           app_certificate: hint(
             await getSecret(FIELDS.app_certificate, "AGORA_APP_CERTIFICATE"),
+          ),
+          openai_api_key: hint(
+            await getSecret(FIELDS.openai_api_key, "OPENAI_API_KEY"),
+          ),
+          anthropic_api_key: hint(
+            await getSecret(FIELDS.anthropic_api_key, "ANTHROPIC_API_KEY"),
           ),
         };
         return new Response(JSON.stringify(status), {
