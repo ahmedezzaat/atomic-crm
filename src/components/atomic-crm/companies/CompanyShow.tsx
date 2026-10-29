@@ -23,6 +23,7 @@ import {
 } from "react-router";
 
 import { useIsMobile } from "@/hooks/use-mobile";
+import { StartCallButton } from "../calls/StartCallButton";
 import { CompanyTagsList } from "./CompanyTagsList";
 import { SendSmsDialog } from "../sms/SendSmsDialog";
 import { AddTask } from "../tasks/AddTask";
@@ -117,7 +118,7 @@ const CompanyShowContent = () => {
       <div className="flex-1">
         <Card>
           <CardContent>
-            <div className="flex mb-3">
+            <div className="flex mb-3 gap-2">
               <CompanyAvatar />
               <div className="ml-2 flex-1">
                 <h5 className="text-xl font-semibold">{record.name}</h5>
@@ -137,6 +138,7 @@ const CompanyShowContent = () => {
                 <MessageSquareText className="h-4 w-4" />
                 Send SMS
               </Button>
+              <StartCallButton company={record} />
               <SendSmsDialog
                 company={record}
                 open={smsOpen}

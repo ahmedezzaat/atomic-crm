@@ -195,3 +195,8 @@ grant all on table public.company_tags to service_role;
 grant all on sequence public.company_tags_id_seq to anon;
 grant all on sequence public.company_tags_id_seq to authenticated;
 grant all on sequence public.company_tags_id_seq to service_role;
+
+grant all on table public.calls to authenticated;
+grant all on table public.calls to service_role;
+grant all on sequence public.calls_id_seq to authenticated;
+grant all on sequence public.calls_id_seq to service_role;

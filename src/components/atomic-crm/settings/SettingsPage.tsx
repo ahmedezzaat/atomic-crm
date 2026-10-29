@@ -1,4 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
+import { CallSettingsCard } from "./CallSettingsCard";
 import { SmsSettingsCard } from "./SmsSettingsCard";
 import { RotateCcw, Save } from "lucide-react";
 import type { RaRecord } from "ra-core";
@@ -420,6 +421,8 @@ const SettingsFormFields = () => {
         </Card>
 
         <SmsSettingsCard />
+
+        <CallSettingsCard />
 
         {/* Deals */}
         <Card id="deals">

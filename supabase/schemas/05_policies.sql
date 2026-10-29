@@ -92,3 +92,12 @@ create policy "Enable read access for authenticated users" on public.company_tag
 create policy "Enable insert for authenticated users only" on public.company_tags for insert to authenticated with check (true);
 create policy "Company Tag Update Policy" on public.company_tags for update to authenticated using (true);
 create policy "Company Tag Delete Policy" on public.company_tags for delete to authenticated using (true);
+
+alter table public.calls enable row level security;
+
+-- Staff only. Guests never touch this table: they join through the call_guest
+-- function, which checks the secret guest_key.
+create policy "Enable read access for authenticated users" on public.calls for select to authenticated using (true);
+create policy "Enable insert for authenticated users only" on public.calls for insert to authenticated with check (true);
+create policy "Call Update Policy" on public.calls for update to authenticated using (true);
+create policy "Call Delete Policy" on public.calls for delete to authenticated using (true);

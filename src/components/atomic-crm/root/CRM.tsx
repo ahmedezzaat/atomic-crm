@@ -22,6 +22,9 @@ import { MobileDashboard } from "../dashboard/MobileDashboard";
 import deals from "../deals";
 import tasks from "../tasks";
 import customers from "../customers";
+import { CallList } from "../calls/CallList";
+import { CallPage } from "../calls/CallPage";
+import { GuestCallPage } from "../calls/GuestCallPage";
 import { SmsCampaignList } from "../sms/SmsCampaignList";
 import { SmsCampaignForm } from "../sms/SmsCampaignForm";
 import { Layout } from "../layout/Layout";
@@ -280,11 +283,14 @@ const DesktopAdmin = (
           element={<ForgotPasswordPage />}
         />
         <Route path={OAuthConsentPage.path} element={<OAuthConsentPage />} />
+        <Route path="/call/:guestKey" element={<GuestCallPage />} />
       </CustomRoutes>
 
       <CustomRoutes>
         <Route path={ProfilePage.path} element={<ProfilePage />} />
         <Route path={SettingsPage.path} element={<SettingsPage />} />
+        <Route path="/calls" element={<CallList />} />
+        <Route path="/calls/:id" element={<CallPage />} />
         <Route path="/sms" element={<SmsCampaignList />} />
         <Route path="/sms/new" element={<SmsCampaignForm />} />
         <Route path="/sms/:id" element={<SmsCampaignForm />} />
@@ -300,6 +306,7 @@ const DesktopAdmin = (
       <Resource name="customers" {...customers} />
       <Resource name="subscriptions" />
       <Resource name="sms_campaigns" />
+      <Resource name="calls" />
       <Resource name="sms_messages" />
       <Resource name="sales" {...sales} />
       <Resource name="tags" />

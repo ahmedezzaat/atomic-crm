@@ -19,6 +19,8 @@ const Header = () => {
   let currentPath: string | boolean = "/";
   if (matchPath("/", location.pathname)) {
     currentPath = "/";
+  } else if (matchPath("/calls/*", location.pathname)) {
+    currentPath = "/calls";
   } else if (matchPath("/sms/*", location.pathname)) {
     currentPath = "/sms";
   } else if (matchPath("/customers/*", location.pathname)) {
@@ -97,6 +99,11 @@ const Header = () => {
                     label="SMS"
                     to="/sms"
                     isActive={currentPath === "/sms"}
+                  />
+                  <NavigationTab
+                    label="Calls"
+                    to="/calls"
+                    isActive={currentPath === "/calls"}
                   />
                   <NavigationTab
                     label={translate("resources.tasks.name", {

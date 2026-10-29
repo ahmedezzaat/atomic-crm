@@ -181,3 +181,12 @@ verify_jwt = false
 
 [functions.sms_settings]
 verify_jwt = false
+
+[functions.call_settings]
+verify_jwt = false
+
+[functions.call_start]
+verify_jwt = false
+
+[functions.call_guest]
+verify_jwt = false
