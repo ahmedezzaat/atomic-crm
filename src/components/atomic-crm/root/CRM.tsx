@@ -370,6 +370,7 @@ const MobileAdmin = (
             element={<ForgotPasswordPage />}
           />
           <Route path={OAuthConsentPage.path} element={<OAuthConsentPage />} />
+          <Route path="/call/:guestKey" element={<GuestCallPage />} />
         </CustomRoutes>
         <CustomRoutes>
           <Route
