@@ -34,6 +34,67 @@ const SEGMENTS = [
   { label: "Real estate brokers", query: "real estate agency" },
 ];
 
+const AREAS: Record<string, string[]> = {
+  "Cairo & New Cairo": [
+    "New Cairo",
+    "Fifth Settlement",
+    "Mostakbal City",
+    "Shorouk City",
+    "Madinaty",
+    "Rehab City",
+    "Nasr City",
+    "Heliopolis",
+    "Maadi",
+    "New Capital",
+    "Downtown Cairo",
+    "Zamalek",
+    "Mokattam",
+    "El Obour",
+    "Badr City",
+    "10th of Ramadan",
+  ],
+  Giza: [
+    "6th of October",
+    "Sheikh Zayed",
+    "Mohandessin",
+    "Dokki",
+    "Haram",
+    "Faisal",
+    "Hadayek October",
+    "Smart Village",
+  ],
+  "North Coast": [
+    "North Coast",
+    "Sidi Abdel Rahman",
+    "Ras El Hekma",
+    "El Alamein",
+    "Marsa Matrouh",
+  ],
+  "Red Sea & Sinai": [
+    "Ain Sokhna",
+    "Hurghada",
+    "El Gouna",
+    "Sahl Hasheesh",
+    "Marsa Alam",
+    "Sharm El Sheikh",
+    "Dahab",
+    "Taba",
+  ],
+  "Alexandria & Delta": [
+    "Alexandria",
+    "Smouha",
+    "Borg El Arab",
+    "Tanta",
+    "Mansoura",
+    "Zagazig",
+    "Damietta",
+    "Port Said",
+    "Ismailia",
+    "Suez",
+  ],
+  "Upper Egypt": ["Fayoum", "Minya", "Asyut", "Sohag", "Luxor", "Aswan"],
+};
+
 const call = async <T,>(body: Record<string, unknown>) => {
   const { data, error } = await getSupabaseClient().functions.invoke<T>(
     "lead_finder",
@@ -76,7 +137,7 @@ export const FindLeads = () => {
 
   const search = async (more = false) => {
     if (!area.trim()) {
-      notify("Enter an area, for example 6th of October", { type: "warning" });
+      notify("Choose an area first", { type: "warning" });
       return;
     }
     setBusy(true);
@@ -187,14 +248,23 @@ export const FindLeads = () => {
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="fl-area">Area</Label>
-            <Input
+            <select
               id="fl-area"
               value={area}
               onChange={(e) => setArea(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && search()}
-              placeholder="6th of October, New Cairo..."
-              className="w-64"
-            />
+              className="h-9 w-64 rounded-md border bg-background px-3 text-sm"
+            >
+              <option value="">Choose an area</option>
+              {Object.entries(AREAS).map(([group, list]) => (
+                <optgroup key={group} label={group}>
+                  {list.map((a) => (
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
           </div>
           <Button onClick={() => search()} disabled={busy || !configured}>
             <Search className="h-4 w-4" />
