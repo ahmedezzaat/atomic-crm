@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import { useGetIdentity, useNotify } from "ra-core";
+import { useNotify } from "ra-core";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,6 @@ const call = async <T,>(body: Record<string, unknown>) => {
 
 export const FindLeads = () => {
   const notify = useNotify();
-  const { identity } = useGetIdentity();
   const [configured, setConfigured] = useState<boolean>();
   const [newKey, setNewKey] = useState("");
   const [segment, setSegment] = useState(SEGMENTS[0]);
@@ -147,25 +146,23 @@ export const FindLeads = () => {
           <CardContent className="space-y-3">
             <p className="font-medium">Google key needed</p>
             <p className="text-sm text-muted-foreground">
-              {identity?.administrator
-                ? "Paste a Google Places API key (Google Cloud → APIs → Places API (New) → Credentials). It is stored on the server and never shown again."
-                : "Ask an administrator to add the Google Places API key."}
+              Paste a Google Places API key (Google Cloud → APIs → Places API
+              (New) → Credentials). Only administrators can save it. It is
+              stored on the server and never shown again.
             </p>
-            {identity?.administrator && (
-              <div className="flex max-w-xl gap-2">
-                <Input
-                  type="password"
-                  autoComplete="off"
-                  dir="ltr"
-                  value={newKey}
-                  onChange={(e) => setNewKey(e.target.value)}
-                  placeholder="Google API key"
-                />
-                <Button onClick={saveKey} disabled={!newKey.trim()}>
-                  Save
-                </Button>
-              </div>
-            )}
+            <div className="flex max-w-xl gap-2">
+              <Input
+                type="password"
+                autoComplete="off"
+                dir="ltr"
+                value={newKey}
+                onChange={(e) => setNewKey(e.target.value)}
+                placeholder="Google API key"
+              />
+              <Button onClick={saveKey} disabled={!newKey.trim()}>
+                Save
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
