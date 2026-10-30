@@ -205,3 +205,6 @@ verify_jwt = false
 
 [functions.lead_settings]
 verify_jwt = false
+
+[functions.lead_finder]
+verify_jwt = false

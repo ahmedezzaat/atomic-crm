@@ -26,6 +26,7 @@ import { CallList } from "../calls/CallList";
 import { CallPage } from "../calls/CallPage";
 import { GuestCallPage } from "../calls/GuestCallPage";
 import { LeadForm } from "../leads/LeadForm";
+import { FindLeads } from "../leads/FindLeads";
 import { SmsCampaignList } from "../sms/SmsCampaignList";
 import { SmsCampaignForm } from "../sms/SmsCampaignForm";
 import { Layout } from "../layout/Layout";
@@ -293,6 +294,7 @@ const DesktopAdmin = (
         <Route path={SettingsPage.path} element={<SettingsPage />} />
         <Route path="/calls" element={<CallList />} />
         <Route path="/calls/:id" element={<CallPage />} />
+        <Route path="/find-leads" element={<FindLeads />} />
         <Route path="/sms" element={<SmsCampaignList />} />
         <Route path="/sms/new" element={<SmsCampaignForm />} />
         <Route path="/sms/:id" element={<SmsCampaignForm />} />
