@@ -101,3 +101,8 @@ create policy "Enable read access for authenticated users" on public.calls for s
 create policy "Enable insert for authenticated users only" on public.calls for insert to authenticated with check (true);
 create policy "Call Update Policy" on public.calls for update to authenticated using (true);
 create policy "Call Delete Policy" on public.calls for delete to authenticated using (true);
+
+alter table public.whatsapp_messages enable row level security;
+
+-- Staff can read the conversation; all writes go through the server functions
+create policy "Enable read access for authenticated users" on public.whatsapp_messages for select to authenticated using (true);

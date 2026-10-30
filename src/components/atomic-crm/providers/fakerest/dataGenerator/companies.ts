@@ -49,6 +49,8 @@ export const generateCompanies = (db: Db, size = 55): Required<Company>[] => {
       competitor: "",
       lead_source: "",
       tags: [],
+      whatsapp_opt_in: false,
+      whatsapp_opted_out: false,
       is_customer: false,
       country: random.arrayElement(["USA", "France", "UK"]),
       context_links: [],

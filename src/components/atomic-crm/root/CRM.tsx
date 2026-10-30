@@ -25,6 +25,7 @@ import customers from "../customers";
 import { CallList } from "../calls/CallList";
 import { CallPage } from "../calls/CallPage";
 import { GuestCallPage } from "../calls/GuestCallPage";
+import { LeadForm } from "../leads/LeadForm";
 import { SmsCampaignList } from "../sms/SmsCampaignList";
 import { SmsCampaignForm } from "../sms/SmsCampaignForm";
 import { Layout } from "../layout/Layout";
@@ -284,6 +285,7 @@ const DesktopAdmin = (
         />
         <Route path={OAuthConsentPage.path} element={<OAuthConsentPage />} />
         <Route path="/call/:guestKey" element={<GuestCallPage />} />
+        <Route path="/request-demo" element={<LeadForm />} />
       </CustomRoutes>
 
       <CustomRoutes>
@@ -307,6 +309,7 @@ const DesktopAdmin = (
       <Resource name="subscriptions" />
       <Resource name="sms_campaigns" />
       <Resource name="calls" />
+      <Resource name="whatsapp_messages" />
       <Resource name="sms_messages" />
       <Resource name="sales" {...sales} />
       <Resource name="tags" />
@@ -371,6 +374,7 @@ const MobileAdmin = (
           />
           <Route path={OAuthConsentPage.path} element={<OAuthConsentPage />} />
           <Route path="/call/:guestKey" element={<GuestCallPage />} />
+          <Route path="/request-demo" element={<LeadForm />} />
         </CustomRoutes>
         <CustomRoutes>
           <Route

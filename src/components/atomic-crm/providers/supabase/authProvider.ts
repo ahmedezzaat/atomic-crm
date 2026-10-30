@@ -124,7 +124,10 @@ export const getAuthProvider = (): AuthProvider => {
         return;
       }
       // Guests joining a call from the link they were sent have no CRM login
-      if (window.location.hash.startsWith("#/call/")) {
+      if (
+        window.location.hash.startsWith("#/call/") ||
+        window.location.hash.startsWith("#/request-demo")
+      ) {
         return;
       }
       // Users are on the sign-up page, nothing to do

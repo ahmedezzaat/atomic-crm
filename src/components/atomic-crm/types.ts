@@ -75,6 +75,8 @@ export type Company = {
   competitor?: string;
   lead_source?: string;
   tags?: number[];
+  whatsapp_opt_in?: boolean;
+  whatsapp_opted_out?: boolean;
   is_customer?: boolean;
 } & Pick<RaRecord, "id">;
 

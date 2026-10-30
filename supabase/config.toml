@@ -193,3 +193,15 @@ verify_jwt = false
 
 [functions.call_process]
 verify_jwt = false
+
+[functions.lead_capture]
+verify_jwt = false
+
+[functions.whatsapp_webhook]
+verify_jwt = false
+
+[functions.whatsapp_send]
+verify_jwt = false
+
+[functions.lead_settings]
+verify_jwt = false

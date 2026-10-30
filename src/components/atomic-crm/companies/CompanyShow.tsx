@@ -25,6 +25,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { StartCallButton } from "../calls/StartCallButton";
 import { CompanyCallsTab } from "./CompanyCallsTab";
+import { CompanyWhatsAppTab } from "./CompanyWhatsAppTab";
 import { CompanyTagsList } from "./CompanyTagsList";
 import { SendSmsDialog } from "../sms/SendSmsDialog";
 import { AddTask } from "../tasks/AddTask";
@@ -147,7 +148,7 @@ const CompanyShowContent = () => {
               />
             </div>
             <Tabs defaultValue={currentTab} onValueChange={handleTabChange}>
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="activity">
                   {translate("crm.common.activity")}
                 </TabsTrigger>
@@ -158,6 +159,7 @@ const CompanyShowContent = () => {
                         smart_count: record.nb_contacts ?? 0,
                       })}
                 </TabsTrigger>
+                <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
                 <TabsTrigger value="calls">Calls</TabsTrigger>
                 <TabsTrigger value="tasks">
                   {translate("resources.tasks.name", { smart_count: 2 })}
@@ -168,6 +170,9 @@ const CompanyShowContent = () => {
                   })}
                 </TabsTrigger>
               </TabsList>
+              <TabsContent value="whatsapp">
+                <CompanyWhatsAppTab company={record} />
+              </TabsContent>
               <TabsContent value="calls">
                 <CompanyCallsTab companyId={record.id} />
               </TabsContent>
