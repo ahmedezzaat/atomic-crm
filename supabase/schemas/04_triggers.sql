@@ -87,3 +87,7 @@ create or replace trigger on_auth_user_updated
 create or replace trigger set_sms_campaign_sales_id_trigger
     before insert on public.sms_campaigns
     for each row execute function public.set_sales_id_default();
+
+create or replace trigger set_wa_campaign_sales_id_trigger
+    before insert on public.wa_campaigns
+    for each row execute function public.set_sales_id_default();

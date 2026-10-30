@@ -26,6 +26,8 @@ import { CallList } from "../calls/CallList";
 import { CallPage } from "../calls/CallPage";
 import { GuestCallPage } from "../calls/GuestCallPage";
 import { LeadForm } from "../leads/LeadForm";
+import { WaCampaignList } from "../whatsapp/WaCampaignList";
+import { WaCampaignForm } from "../whatsapp/WaCampaignForm";
 import { FindLeads } from "../leads/FindLeads";
 import { SmsCampaignList } from "../sms/SmsCampaignList";
 import { SmsCampaignForm } from "../sms/SmsCampaignForm";
@@ -295,6 +297,9 @@ const DesktopAdmin = (
         <Route path="/calls" element={<CallList />} />
         <Route path="/calls/:id" element={<CallPage />} />
         <Route path="/find-leads" element={<FindLeads />} />
+        <Route path="/wa-campaigns" element={<WaCampaignList />} />
+        <Route path="/wa-campaigns/new" element={<WaCampaignForm />} />
+        <Route path="/wa-campaigns/:id" element={<WaCampaignForm />} />
         <Route path="/sms" element={<SmsCampaignList />} />
         <Route path="/sms/new" element={<SmsCampaignForm />} />
         <Route path="/sms/:id" element={<SmsCampaignForm />} />
@@ -310,6 +315,7 @@ const DesktopAdmin = (
       <Resource name="customers" {...customers} />
       <Resource name="subscriptions" />
       <Resource name="sms_campaigns" />
+      <Resource name="wa_campaigns" />
       <Resource name="calls" />
       <Resource name="whatsapp_messages" />
       <Resource name="sms_messages" />

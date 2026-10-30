@@ -23,6 +23,8 @@ const Header = () => {
     currentPath = "/calls";
   } else if (matchPath("/find-leads", location.pathname)) {
     currentPath = "/find-leads";
+  } else if (matchPath("/wa-campaigns/*", location.pathname)) {
+    currentPath = "/wa-campaigns";
   } else if (matchPath("/sms/*", location.pathname)) {
     currentPath = "/sms";
   } else if (matchPath("/customers/*", location.pathname)) {
@@ -101,6 +103,11 @@ const Header = () => {
                     label="Find leads"
                     to="/find-leads"
                     isActive={currentPath === "/find-leads"}
+                  />
+                  <NavigationTab
+                    label="WhatsApp"
+                    to="/wa-campaigns"
+                    isActive={currentPath === "/wa-campaigns"}
                   />
                   <NavigationTab
                     label="SMS"

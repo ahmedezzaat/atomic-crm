@@ -64,6 +64,9 @@ const getDataProviderWithCustomMethods = () => {
       if (resource === "sms_campaigns") {
         return baseDataProvider.getList("sms_campaigns_summary", params);
       }
+      if (resource === "wa_campaigns") {
+        return baseDataProvider.getList("wa_campaigns_summary", params);
+      }
       if (resource === "activity_log") {
         const { data, total } = await baseDataProvider.getList(
           "activity_log",
@@ -96,6 +99,9 @@ const getDataProviderWithCustomMethods = () => {
       }
       if (resource === "sms_campaigns") {
         return baseDataProvider.getOne("sms_campaigns_summary", params);
+      }
+      if (resource === "wa_campaigns") {
+        return baseDataProvider.getOne("wa_campaigns_summary", params);
       }
 
       return baseDataProvider.getOne(resource, params);

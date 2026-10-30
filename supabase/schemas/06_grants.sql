@@ -204,3 +204,11 @@ grant all on sequence public.calls_id_seq to service_role;
 grant select on table public.whatsapp_messages to authenticated;
 grant all on table public.whatsapp_messages to service_role;
 grant all on sequence public.whatsapp_messages_id_seq to service_role;
+
+grant all on table public.wa_campaigns to authenticated;
+grant all on table public.wa_campaigns to service_role;
+grant all on sequence public.wa_campaigns_id_seq to authenticated;
+grant all on sequence public.wa_campaigns_id_seq to service_role;
+
+grant all on table public.wa_campaigns_summary to authenticated;
+grant all on table public.wa_campaigns_summary to service_role;

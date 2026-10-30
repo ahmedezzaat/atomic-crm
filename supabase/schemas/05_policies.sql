@@ -106,3 +106,9 @@ alter table public.whatsapp_messages enable row level security;
 
 -- Staff can read the conversation; all writes go through the server functions
 create policy "Enable read access for authenticated users" on public.whatsapp_messages for select to authenticated using (true);
+
+alter table public.wa_campaigns enable row level security;
+create policy "Enable read access for authenticated users" on public.wa_campaigns for select to authenticated using (true);
+create policy "Enable insert for authenticated users only" on public.wa_campaigns for insert to authenticated with check (true);
+create policy "WA Campaign Update Policy" on public.wa_campaigns for update to authenticated using (true);
+create policy "WA Campaign Delete Policy" on public.wa_campaigns for delete to authenticated using (true);

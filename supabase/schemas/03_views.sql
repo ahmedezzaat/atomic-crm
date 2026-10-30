@@ -170,3 +170,20 @@ select
 from public.sms_campaigns c
     left join public.sms_messages m on m.campaign_id = c.id
 group by c.id;
+
+-- Campaign progress, derived from the messages sent for it.
+create or replace view public.wa_campaigns_summary with (security_invoker = on) as
+select
+    c.*,
+    count(m.id) as nb_messages,
+    count(m.id) filter (where m.status in ('sent', 'delivered', 'read')) as nb_sent,
+    count(m.id) filter (where m.status in ('delivered', 'read')) as nb_delivered,
+    count(m.id) filter (where m.status = 'read') as nb_read,
+    count(m.id) filter (where m.status = 'failed') as nb_failed,
+    count(distinct m.phone) filter (where exists (
+        select 1 from public.whatsapp_messages r
+        where r.phone = m.phone and r.direction = 'in' and r.created_at > m.created_at
+    )) as nb_replied
+from public.wa_campaigns c
+    left join public.whatsapp_messages m on m.campaign_id = c.id and m.direction = 'out'
+group by c.id;

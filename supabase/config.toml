@@ -208,3 +208,6 @@ verify_jwt = false
 
 [functions.lead_finder]
 verify_jwt = false
+
+[functions.wa_campaign_send]
+verify_jwt = false
