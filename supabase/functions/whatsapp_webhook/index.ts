@@ -40,6 +40,34 @@ const STATUS_MAP: Record<string, string> = {
   failed: "failed",
 };
 
+/** Message the business typed in the WhatsApp Business app (coexistence). */
+async function handleEcho(echo: any) {
+  const phone = normalizePhone(echo.to);
+  if (!phone) return;
+  const text =
+    echo.type === "text" ? String(echo.text?.body ?? "") : `[${echo.type}]`;
+  const { data: companies } = await supabaseAdmin
+    .from("companies")
+    .select("id,phone_number")
+    .not("phone_number", "is", null)
+    .limit(5000);
+  const company = (companies ?? []).find(
+    (c) => normalizePhone(c.phone_number) === phone,
+  );
+  const { error } = await supabaseAdmin.from("whatsapp_messages").insert({
+    company_id: company?.id ?? null,
+    phone,
+    direction: "out",
+    body: text,
+    status: "sent",
+    wa_message_id: echo.id,
+  });
+  // 23505: the CRM already stored this message when it sent it
+  if (error && error.code !== "23505") {
+    console.error("whatsapp_webhook echo insert", error);
+  }
+}
+
 async function handleMessage(message: any) {
   const phone = normalizePhone(message.from);
   if (!phone) return;
@@ -122,6 +150,7 @@ Deno.serve(async (req: Request) => {
         const value = change.value ?? {};
         for (const message of value.messages ?? [])
           await handleMessage(message);
+        for (const echo of value.message_echoes ?? []) await handleEcho(echo);
         for (const status of value.statuses ?? []) {
           const mapped = STATUS_MAP[status.status];
           if (!mapped || !status.id) continue;

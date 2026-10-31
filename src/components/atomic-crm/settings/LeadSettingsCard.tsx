@@ -21,7 +21,42 @@ type Status = {
   verify_token: string;
   webhook_url: string;
   lead_url: string;
+  connect_error?: string;
+  app_id: string;
+  config_id: string;
+  waba_id: string;
+  mode: "cloud" | "coexistence";
 };
+
+type Method = "cloud" | "coexistence";
+
+// Meta's JavaScript SDK is only loaded when someone connects a number
+declare global {
+  interface Window {
+    FB?: any;
+    fbAsyncInit?: () => void;
+  }
+}
+
+const loadFacebookSdk = (appId: string) =>
+  new Promise<void>((resolve, reject) => {
+    const init = () => {
+      window.FB.init({
+        appId,
+        autoLogAppEvents: true,
+        xfbml: false,
+        version: "v21.0",
+      });
+      resolve();
+    };
+    if (window.FB) return init();
+    window.fbAsyncInit = init;
+    const script = document.createElement("script");
+    script.src = "https://connect.facebook.net/en_US/sdk.js";
+    script.async = true;
+    script.onerror = () => reject(new Error("Could not load Meta's sign-in"));
+    document.body.appendChild(script);
+  });
 
 const SECRETS = [
   {
@@ -79,6 +114,9 @@ export const LeadSettingsCard = () => {
     template_has_name: "yes",
   });
   const [saving, setSaving] = useState(false);
+  const [method, setMethod] = useState<Method>("cloud");
+  const [ids, setIds] = useState({ app_id: "", config_id: "" });
+  const [connecting, setConnecting] = useState(false);
 
   const call = async (body: Record<string, unknown>) => {
     const { data, error } = await getSupabaseClient().functions.invoke<Status>(
@@ -96,6 +134,8 @@ export const LeadSettingsCard = () => {
     call({ action: "status" })
       .then((s) => {
         setStatus(s);
+        setMethod(s.mode);
+        setIds({ app_id: s.app_id, config_id: s.config_id });
         setPlain({
           phone_number_id: s.phone_number_id,
           template_name: s.template_name,
@@ -116,6 +156,102 @@ export const LeadSettingsCard = () => {
       notify(`Could not save: ${(e as Error).message}`, { type: "error" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Coexistence: the number stays in the WhatsApp Business app and also works here.
+  // Meta's sign-up window returns a one-time code plus the account and number ids.
+  const connectCoexistence = async () => {
+    setConnecting(true);
+    try {
+      const saved = await call({
+        action: "save",
+        ...secrets,
+        app_id: ids.app_id,
+        config_id: ids.config_id,
+      });
+      setStatus(saved);
+      setSecrets({ access_token: "", app_secret: "" });
+      if (
+        !ids.app_id.trim() ||
+        !ids.config_id.trim() ||
+        !saved.app_secret.set
+      ) {
+        throw new Error(
+          "Enter the Meta App ID, the Configuration ID and the App secret first",
+        );
+      }
+      await loadFacebookSdk(ids.app_id.trim());
+
+      let session: { phone_number_id?: string; waba_id?: string } | undefined;
+      let cancelled = false;
+      const onMessage = (event: MessageEvent) => {
+        let origin = "";
+        try {
+          origin = new URL(event.origin).hostname;
+        } catch {
+          return;
+        }
+        if (!/(^|\.)facebook\.com$/.test(origin)) return;
+        try {
+          const data =
+            typeof event.data === "string"
+              ? JSON.parse(event.data)
+              : event.data;
+          if (data?.type !== "WA_EMBEDDED_SIGNUP") return;
+          if (String(data.event).startsWith("FINISH")) session = data.data;
+          else if (data.event === "CANCEL") cancelled = true;
+        } catch {
+          // not a message about the sign-up
+        }
+      };
+      window.addEventListener("message", onMessage);
+      try {
+        const code = await new Promise<string | undefined>((resolve) => {
+          window.FB.login(
+            (response: any) => resolve(response?.authResponse?.code),
+            {
+              config_id: ids.config_id.trim(),
+              response_type: "code",
+              override_default_response_type: true,
+              extras: {
+                setup: {},
+                featureType: "whatsapp_business_app_onboarding",
+                sessionInfoVersion: "3",
+              },
+            },
+          );
+        });
+        // the account details can arrive just after the sign-in window closes
+        for (let i = 0; i < 20 && !session && !cancelled; i++) {
+          await new Promise((r) => setTimeout(r, 250));
+        }
+        if (!code || cancelled || !session) {
+          throw new Error("The connection was cancelled before it finished");
+        }
+        const result = await call({
+          action: "connect_coexistence",
+          code,
+          waba_id: session.waba_id,
+          phone_number_id: session.phone_number_id,
+        });
+        setStatus(result);
+        setPlain((v) => ({
+          ...v,
+          phone_number_id: result.phone_number_id,
+        }));
+        if (result.connect_error) {
+          notify(result.connect_error, { type: "warning" });
+        } else {
+          notify("WhatsApp number connected");
+        }
+      } finally {
+        window.removeEventListener("message", onMessage);
+      }
+    } catch (e) {
+      notify(`Could not connect: ${(e as Error).message}`, { type: "error" });
+    } finally {
+      setConnecting(false);
     }
   };
 
@@ -141,7 +277,127 @@ export const LeadSettingsCard = () => {
           shown again; leave a field empty to keep what is saved.
         </p>
 
-        <div className="grid grid-cols-1 gap-4">
+        <div className="flex flex-col gap-2">
+          <Label>How is your WhatsApp number connected?</Label>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={method === "cloud" ? "default" : "outline"}
+              onClick={() => setMethod("cloud")}
+            >
+              WhatsApp Cloud API (number used only here)
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={method === "coexistence" ? "default" : "outline"}
+              onClick={() => setMethod("coexistence")}
+            >
+              Coexistence (number also stays in the WhatsApp Business app)
+            </Button>
+          </div>
+          {status?.phone_number_id && (
+            <p className="text-xs text-muted-foreground">
+              Currently connected using{" "}
+              <b>
+                {status.mode === "coexistence"
+                  ? "coexistence"
+                  : "the Cloud API"}
+              </b>
+              .
+            </p>
+          )}
+        </div>
+
+        {method === "coexistence" && (
+          <div className="space-y-3 rounded-md border p-4">
+            <p className="text-sm text-muted-foreground">
+              Keep using the number in the WhatsApp Business app on your phone
+              and let the CRM send and receive on it too. Messages you type on
+              the phone also appear in the Inbox. The number must already be
+              active in the <b>WhatsApp Business app</b> (not personal
+              WhatsApp).
+            </p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="wa-app-id">Meta App ID</Label>
+                <Input
+                  id="wa-app-id"
+                  dir="ltr"
+                  value={ids.app_id}
+                  onChange={(e) =>
+                    setIds((v) => ({ ...v, app_id: e.target.value }))
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  App settings → Basic.
+                </p>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="wa-config-id">
+                  Embedded Signup configuration ID
+                </Label>
+                <Input
+                  id="wa-config-id"
+                  dir="ltr"
+                  value={ids.config_id}
+                  onChange={(e) =>
+                    setIds((v) => ({ ...v, config_id: e.target.value }))
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  Facebook Login for Business → Configurations.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="wa-coex-secret">App secret</Label>
+              <Input
+                id="wa-coex-secret"
+                type="password"
+                autoComplete="off"
+                value={secrets.app_secret}
+                onChange={(e) =>
+                  setSecrets((v) => ({ ...v, app_secret: e.target.value }))
+                }
+                placeholder={
+                  status?.app_secret.set
+                    ? `Saved (ends with ${status.app_secret.hint})`
+                    : "Not set"
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                App settings → Basic → Show. Used to finish the connection and
+                to check that replies really come from Meta.
+              </p>
+            </div>
+            <Button
+              type="button"
+              onClick={connectCoexistence}
+              disabled={connecting}
+            >
+              {connecting
+                ? "Waiting for Meta…"
+                : status?.mode === "coexistence" && status.waba_id
+                  ? "Connect again"
+                  : "Connect my WhatsApp Business app number"}
+            </Button>
+            {status?.mode === "coexistence" && status.waba_id && (
+              <p className="text-sm">
+                Connected. WhatsApp account:{" "}
+                <span dir="ltr">{status.waba_id}</span>
+              </p>
+            )}
+            {status?.connect_error && (
+              <p className="text-sm text-destructive">{status.connect_error}</p>
+            )}
+          </div>
+        )}
+
+        <div
+          className={method === "cloud" ? "grid grid-cols-1 gap-4" : "hidden"}
+        >
           {SECRETS.map(({ key, label, help }) => {
             const saved = status?.[key];
             return (
@@ -177,6 +433,9 @@ export const LeadSettingsCard = () => {
               From Meta: WhatsApp → API setup (not the phone number itself).
             </p>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="wa-template">Welcome template name</Label>
@@ -240,6 +499,15 @@ export const LeadSettingsCard = () => {
             <CopyRow label="Verify token" value={status.verify_token} />
             <p className="text-xs text-muted-foreground">
               Subscribe the webhook to the <b>messages</b> field.
+              {method === "coexistence" && (
+                <>
+                  {" "}
+                  For coexistence also subscribe to <b>
+                    smb_message_echoes
+                  </b>, <b>history</b> and <b>smb_app_state_sync</b>. Messages
+                  you type on the phone then show up in the Inbox.
+                </>
+              )}
             </p>
 
             <h3 className="pt-2 text-lg font-medium text-muted-foreground">

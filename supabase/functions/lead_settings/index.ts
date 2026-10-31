@@ -3,6 +3,7 @@ import { corsHeaders, OptionsMiddleware } from "../_shared/cors.ts";
 import { createErrorResponse } from "../_shared/utils.ts";
 import { AuthMiddleware, UserMiddleware } from "../_shared/authentication.ts";
 import { supabaseAdmin } from "../_shared/supabaseAdmin.ts";
+import { API_BASE } from "../_shared/whatsapp.ts";
 import {
   getOrCreateSecret,
   getSecret,
@@ -21,6 +22,9 @@ const PLAIN_FIELDS = {
   template_name: "wa_template_name",
   template_language: "wa_template_language",
   template_has_name: "wa_template_has_name",
+  // for connecting a number that is also used in the WhatsApp Business app
+  app_id: "wa_app_id",
+  config_id: "wa_config_id",
 } as const;
 
 const hint = (value?: string) =>
@@ -53,12 +57,58 @@ Deno.serve(async (req: Request) =>
             const value = body[field];
             if (typeof value === "string" && value.trim() !== "") {
               await setSecret(key, value.trim());
+              if (field === "access_token") {
+                await setSecret("wa_connection_mode", "cloud");
+              }
             }
           }
           for (const [field, key] of Object.entries(PLAIN_FIELDS)) {
             const value = body[field];
             if (typeof value === "string" && value.trim() !== "") {
               await setSecret(key, value.trim());
+            }
+          }
+        }
+        let connectError: string | undefined;
+        if (body.action === "connect_coexistence") {
+          // Meta's Embedded Signup finished in the browser and gave us a one-time
+          // code plus the account and number it created. Trade the code for a token.
+          const appId = await getSecret("wa_app_id");
+          const appSecret = await getSecret("wa_app_secret");
+          const code = String(body.code ?? "");
+          const wabaId = String(body.waba_id ?? "");
+          const phoneNumberId = String(body.phone_number_id ?? "");
+          if (!appId || !appSecret) {
+            connectError = "Save the Meta App ID and the App secret first";
+          } else if (!code || !wabaId || !phoneNumberId) {
+            connectError =
+              "Meta did not return the account details. Try again.";
+          } else {
+            const url = new URL(`${API_BASE}/oauth/access_token`);
+            url.searchParams.set("client_id", appId);
+            url.searchParams.set("client_secret", appSecret);
+            url.searchParams.set("code", code);
+            const exchange = await fetch(url);
+            const token = await exchange.json().catch(() => ({}));
+            if (!exchange.ok || !token.access_token) {
+              connectError = `Meta refused the sign-in: ${token?.error?.message ?? exchange.status}`;
+            } else {
+              // let the app receive this account's messages
+              const subscribe = await fetch(
+                `${API_BASE}/${wabaId}/subscribed_apps`,
+                {
+                  method: "POST",
+                  headers: { Authorization: `Bearer ${token.access_token}` },
+                },
+              );
+              if (!subscribe.ok) {
+                const detail = await subscribe.json().catch(() => ({}));
+                connectError = `Connected, but Meta would not subscribe the app: ${detail?.error?.message ?? subscribe.status}`;
+              }
+              await setSecret("wa_access_token", token.access_token);
+              await setSecret("wa_phone_number_id", phoneNumberId);
+              await setSecret("wa_waba_id", wabaId);
+              await setSecret("wa_connection_mode", "coexistence");
             }
           }
         }
@@ -74,6 +124,11 @@ Deno.serve(async (req: Request) =>
           app_secret: hint(await getSecret(SECRET_FIELDS.app_secret)),
           lead_api_key: hint(await getSecret("lead_api_key")),
           new_lead_key: newLeadKey,
+          connect_error: connectError,
+          app_id: await plain(PLAIN_FIELDS.app_id),
+          config_id: await plain(PLAIN_FIELDS.config_id),
+          waba_id: await plain("wa_waba_id"),
+          mode: (await plain("wa_connection_mode")) || "cloud",
           phone_number_id: await plain(PLAIN_FIELDS.phone_number_id),
           template_name: await plain(PLAIN_FIELDS.template_name),
           template_language:

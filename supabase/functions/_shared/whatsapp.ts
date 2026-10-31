@@ -3,7 +3,7 @@ import { getSecret } from "./integrationSecrets.ts";
 
 // Meta WhatsApp Cloud API: https://developers.facebook.com/docs/whatsapp/cloud-api
 // The base URL and dry-run switch exist only so tests can run without Meta.
-const API_BASE =
+export const API_BASE =
   Deno.env.get("WA_API_BASE") ?? "https://graph.facebook.com/v21.0";
 export const WA_DRY_RUN = Deno.env.get("WA_DRY_RUN") === "true";
 
