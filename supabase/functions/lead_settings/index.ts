@@ -134,12 +134,37 @@ Deno.serve(async (req: Request) =>
           } else if (!code) {
             connectError = "Meta did not return a sign-in code. Try again.";
           } else {
-            const url = new URL(`${API_BASE}/oauth/access_token`);
-            url.searchParams.set("client_id", appId);
-            url.searchParams.set("client_secret", appSecret);
-            url.searchParams.set("code", code);
-            const exchange = await fetch(url);
-            const token = await exchange.json().catch(() => ({}));
+            // A code from Meta's browser sign-in is only accepted with the same
+            // redirect_uri it was issued for, which differs by how the code was
+            // requested. Try the usual variants; the code stays valid until used.
+            const redirectVariants: (string | undefined)[] = [
+              undefined,
+              "",
+              String(body.redirect_uri ?? "") || undefined,
+              String(body.origin ?? "") || undefined,
+            ].filter((v, i, all) => all.indexOf(v) === i);
+            let exchange!: Response;
+            let token: any = {};
+            for (const redirect of redirectVariants) {
+              const url = new URL(`${API_BASE}/oauth/access_token`);
+              url.searchParams.set("client_id", appId);
+              url.searchParams.set("client_secret", appSecret);
+              url.searchParams.set("code", code);
+              if (redirect !== undefined) {
+                url.searchParams.set("redirect_uri", redirect);
+              }
+              exchange = await fetch(url);
+              token = await exchange.json().catch(() => ({}));
+              if (exchange.ok && token.access_token) break;
+              // only a redirect_uri complaint is worth another variant
+              if (
+                !/redirect_uri|verification code/i.test(
+                  token?.error?.message ?? "",
+                )
+              ) {
+                break;
+              }
+            }
             if (!exchange.ok || !token.access_token) {
               connectError = `Meta refused the sign-in: ${token?.error?.message ?? exchange.status}`;
             } else {

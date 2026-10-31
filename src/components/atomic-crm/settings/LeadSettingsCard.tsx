@@ -236,7 +236,7 @@ export const LeadSettingsCard = () => {
           );
         });
         // the account details can arrive just after the sign-in window closes
-        for (let i = 0; i < 20 && !session && !cancelled; i++) {
+        for (let i = 0; i < 8 && !session && !cancelled; i++) {
           await new Promise((r) => setTimeout(r, 250));
         }
         // already-connected numbers skip the details message: the server finds them
@@ -248,6 +248,9 @@ export const LeadSettingsCard = () => {
         const result = await call({
           action: "connect_coexistence",
           code,
+          // some Meta setups want the sign-in page's own address back
+          redirect_uri: `${window.location.origin}${window.location.pathname}`,
+          origin: window.location.origin,
           waba_id: session?.waba_id,
           phone_number_id: session?.phone_number_id,
         });
