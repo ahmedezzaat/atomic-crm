@@ -78,6 +78,61 @@ async function phoneDetails(accessToken: string, phoneNumberId: string) {
     : "";
 }
 
+/** Every WhatsApp account and number this token was granted, asked from Meta. */
+async function listAccounts(
+  accessToken: string,
+  appId: string,
+  appSecret: string,
+) {
+  const debugUrl = new URL(`${API_BASE}/debug_token`);
+  debugUrl.searchParams.set("input_token", accessToken);
+  debugUrl.searchParams.set("access_token", `${appId}|${appSecret}`);
+  const debug = await fetch(debugUrl)
+    .then((r) => r.json())
+    .catch(() => ({}));
+  const scopes: { scope: string; target_ids?: string[] }[] =
+    debug?.data?.granular_scopes ?? [];
+  const wabaIds = [
+    ...new Set(
+      scopes
+        .filter((s) => s.scope === "whatsapp_business_management")
+        .flatMap((s) => s.target_ids ?? []),
+    ),
+  ];
+  const auth = { headers: { Authorization: `Bearer ${accessToken}` } };
+  const accounts: {
+    waba_id: string;
+    name: string;
+    numbers: { id: string; display: string; name: string; status: string }[];
+  }[] = [];
+  for (const wabaId of wabaIds) {
+    const info = await fetch(`${API_BASE}/${wabaId}?fields=name`, auth)
+      .then((r) => r.json())
+      .catch(() => ({}));
+    const list = await fetch(
+      `${API_BASE}/${wabaId}/phone_numbers?fields=id,display_phone_number,verified_name,status`,
+      auth,
+    )
+      .then((r) => r.json())
+      .catch(() => ({}));
+    accounts.push({
+      waba_id: wabaId,
+      name: String(info?.name ?? ""),
+      numbers: (list?.data ?? []).map((n: any) => ({
+        id: String(n.id),
+        display: String(n.display_phone_number ?? ""),
+        name: String(n.verified_name ?? ""),
+        status: String(n.status ?? ""),
+      })),
+    });
+  }
+  return {
+    accounts,
+    scopeCount: scopes.length,
+    debugError: debug?.error?.message,
+  };
+}
+
 const hint = (value?: string) =>
   value ? { set: true, hint: value.slice(-4) } : { set: false, hint: "" };
 const json = (body: unknown) =>
@@ -224,6 +279,36 @@ Deno.serve(async (req: Request) =>
           }
         }
         let check: unknown;
+        let selectError: string | undefined;
+        if (body.action === "select_account") {
+          const token = await getSecret("wa_access_token");
+          const appId = await getSecret("wa_app_id");
+          const appSecret = await getSecret("wa_app_secret");
+          const wabaId = String(body.waba_id ?? "");
+          const phoneId = String(body.phone_number_id ?? "");
+          if (!token || !appId || !appSecret) {
+            selectError = "Save the access token, App ID and App secret first";
+          } else {
+            // only accept a choice Meta itself lists for this token
+            const { accounts } = await listAccounts(token, appId, appSecret);
+            const ok = accounts.some(
+              (a) =>
+                a.waba_id === wabaId && a.numbers.some((n) => n.id === phoneId),
+            );
+            if (!ok) {
+              selectError = "That number is not available to this token";
+            } else {
+              await setSecret("wa_waba_id", wabaId);
+              await setSecret("wa_phone_number_id", phoneId);
+              await fetch(`${API_BASE}/${wabaId}/subscribed_apps`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+              }).catch(() => undefined);
+              const shown = await phoneDetails(token, phoneId);
+              if (shown) await setSecret("wa_display_phone", shown);
+            }
+          }
+        }
         if (body.action === "check") {
           // Does the saved connection work, and which templates does the account have?
           const token = await getSecret("wa_access_token");
@@ -270,7 +355,22 @@ Deno.serve(async (req: Request) =>
               );
             }
           }
-          check = { number, templates, problems, waba_id: wabaId };
+          let accounts: Awaited<ReturnType<typeof listAccounts>>["accounts"] =
+            [];
+          const appId = await getSecret("wa_app_id");
+          const appSecret = await getSecret("wa_app_secret");
+          if (token && appId && appSecret) {
+            const found = await listAccounts(token, appId, appSecret);
+            accounts = found.accounts;
+            if (found.debugError) {
+              problems.push(`Could not list accounts: ${found.debugError}`);
+            } else if (accounts.length === 0) {
+              problems.push(
+                "This token was not granted any WhatsApp account. When you generate it, pick your WhatsApp account on Meta's permission screen (or assign it to the System User).",
+              );
+            }
+          }
+          check = { number, templates, problems, waba_id: wabaId, accounts };
         }
         if (body.action === "new_lead_key") {
           // shown once: only a hash-free hint is kept readable afterwards
@@ -286,6 +386,7 @@ Deno.serve(async (req: Request) =>
           new_lead_key: newLeadKey,
           connect_error: connectError,
           check,
+          select_error: selectError,
           app_id: await plain(PLAIN_FIELDS.app_id),
           config_id: await plain(PLAIN_FIELDS.config_id),
           waba_id: await plain("wa_waba_id"),

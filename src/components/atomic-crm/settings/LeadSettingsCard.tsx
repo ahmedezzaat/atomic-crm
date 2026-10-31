@@ -34,7 +34,13 @@ type Status = {
     } | null;
     templates: { name: string; language: string; status: string }[];
     problems: string[];
+    accounts?: {
+      waba_id: string;
+      name: string;
+      numbers: { id: string; display: string; name: string; status: string }[];
+    }[];
   };
+  select_error?: string;
   app_id: string;
   config_id: string;
   waba_id: string;
@@ -301,6 +307,30 @@ export const LeadSettingsCard = () => {
     }
   };
 
+  const pickNumber = async (wabaId: string, phoneNumberId: string) => {
+    setChecking(true);
+    try {
+      const result = await call({
+        action: "select_account",
+        waba_id: wabaId,
+        phone_number_id: phoneNumberId,
+      });
+      if (result.select_error) {
+        notify(result.select_error, { type: "error" });
+      } else {
+        setStatus(result);
+        setPlain((v) => ({ ...v, phone_number_id: phoneNumberId }));
+        notify("Number selected");
+        const again = await call({ action: "check" });
+        setReport(again.check);
+      }
+    } catch (e) {
+      notify(`Could not select: ${(e as Error).message}`, { type: "error" });
+    } finally {
+      setChecking(false);
+    }
+  };
+
   const newKey = async () => {
     try {
       setStatus(await call({ action: "new_lead_key" }));
@@ -561,6 +591,47 @@ export const LeadSettingsCard = () => {
                     {p}
                   </p>
                 ))}
+                {report.accounts && report.accounts.length > 0 && (
+                  <div>
+                    <p className="font-medium">
+                      Numbers this token can use (choose the right one)
+                    </p>
+                    <ul className="mt-1 space-y-1">
+                      {report.accounts.flatMap((a) =>
+                        a.numbers.map((n) => {
+                          const current =
+                            n.id === status?.phone_number_id &&
+                            a.waba_id === status?.waba_id;
+                          return (
+                            <li
+                              key={`${a.waba_id}-${n.id}`}
+                              className="flex items-center justify-between gap-2 rounded bg-muted px-2 py-1"
+                            >
+                              <span dir="ltr">
+                                {n.display || "number"}
+                                {n.name ? ` · ${n.name}` : ""}
+                                {n.status ? ` · ${n.status}` : ""}
+                                {a.name ? ` · account: ${a.name}` : ""}
+                              </span>
+                              {current ? (
+                                <b className="text-xs">In use</b>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => pickNumber(a.waba_id, n.id)}
+                                >
+                                  Use this number
+                                </Button>
+                              )}
+                            </li>
+                          );
+                        }),
+                      )}
+                    </ul>
+                  </div>
+                )}
                 {report.number && (
                   <p>
                     Number:{" "}
