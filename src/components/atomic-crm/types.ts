@@ -59,6 +59,7 @@ export type Company = {
   linkedin_url: string;
   website: string;
   phone_number: string;
+  email?: string;
   address: string;
   zipcode: string;
   city: string;

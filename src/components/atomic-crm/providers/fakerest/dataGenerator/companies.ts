@@ -52,6 +52,7 @@ export const generateCompanies = (db: Db, size = 55): Required<Company>[] => {
       whatsapp_opt_in: false,
       whatsapp_opted_out: false,
       is_customer: false,
+      email: "",
       country: random.arrayElement(["USA", "France", "UK"]),
       context_links: [],
     };

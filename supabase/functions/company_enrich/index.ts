@@ -187,6 +187,7 @@ async function enrichOne(company: {
   website: string | null;
   phone_number: string | null;
   linkedin_url: string | null;
+  email: string | null;
   context_links: unknown;
   sales_id: number | null;
 }) {
@@ -253,6 +254,8 @@ async function enrichOne(company: {
   const merged = [...new Set([...known, ...Object.values(others)])];
   if (merged.length !== known.length) update.context_links = merged;
   if (linkedin && !company.linkedin_url) update.linkedin_url = linkedin;
+  // the first email found becomes the company email when it has none
+  if (!company.email && emailList.length) update.email = emailList[0];
   // a company with no number at all gets the first mobile found, so it can be messaged
   if (!own && phoneList.length) update.phone_number = `+${phoneList[0]}`;
   await supabaseAdmin.from("companies").update(update).eq("id", company.id);
@@ -288,7 +291,9 @@ Deno.serve(async (req: Request) =>
 
         const { data: companies } = await supabaseAdmin
           .from("companies")
-          .select("id,website,phone_number,linkedin_url,context_links,sales_id")
+          .select(
+            "id,website,phone_number,linkedin_url,email,context_links,sales_id",
+          )
           .in("id", ids);
 
         const started = Date.now();

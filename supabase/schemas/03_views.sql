@@ -98,7 +98,8 @@ select
     c.lead_source,
     c.tags,
     c.whatsapp_opt_in,
-    c.whatsapp_opted_out
+    c.whatsapp_opted_out,
+    c.email
 from public.companies c
     left join public.deals d on c.id = d.company_id
     left join public.contacts co on c.id = co.company_id

@@ -1,4 +1,4 @@
-import { required, useRecordContext, useTranslate } from "ra-core";
+import { email, required, useRecordContext, useTranslate } from "ra-core";
 import { ReferenceArrayInput } from "@/components/admin/reference-array-input";
 import { ReferenceInput } from "@/components/admin/reference-input";
 import { TextInput } from "@/components/admin/text-input";
@@ -77,6 +77,7 @@ const CompanyDisplayInputs = () => {
 
 const CompanyContactInputs = () => {
   const translate = useTranslate();
+  const { companySectors } = useConfigurationContext();
   return (
     <div className="flex flex-col gap-4">
       <h6 className="text-lg font-semibold">
@@ -86,14 +87,26 @@ const CompanyContactInputs = () => {
       </h6>
       <TextInput source="website" helperText={false} validate={isUrl} />
       <TextInput source="phone_number" helperText={false} />
+      <TextInput
+        source="email"
+        type="email"
+        helperText={false}
+        validate={email()}
+      />
+      <SelectInput
+        source="sector"
+        choices={companySectors}
+        optionText="label"
+        optionValue="value"
+        helperText={false}
+      />
     </div>
   );
 };
 
 const CompanyContextInputs = () => {
   const translate = useTranslate();
-  const { companySectors, companyCompetitors, companyLeadSources } =
-    useConfigurationContext();
+  const { companyCompetitors, companyLeadSources } = useConfigurationContext();
   const translatedSizes = sizes.map((size) => ({
     ...size,
     name: getTranslatedCompanySizeLabel(size, translate),
@@ -105,13 +118,6 @@ const CompanyContextInputs = () => {
           _: "Context",
         })}
       </h6>
-      <SelectInput
-        source="sector"
-        choices={companySectors}
-        optionText="label"
-        optionValue="value"
-        helperText={false}
-      />
       <SelectInput source="size" choices={translatedSizes} helperText={false} />
       <SelectInput
         source="lead_source"

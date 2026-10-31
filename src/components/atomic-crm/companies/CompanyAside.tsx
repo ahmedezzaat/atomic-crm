@@ -1,4 +1,4 @@
-import { Globe, Linkedin, Phone } from "lucide-react";
+import { Briefcase, Globe, Linkedin, Mail, Phone } from "lucide-react";
 import {
   useGetIdentity,
   useLocaleState,
@@ -61,7 +61,17 @@ export const CompanyAside = ({ link = "edit" }: CompanyAsideProps) => {
 
 export const CompanyInfo = ({ record }: { record: Company }) => {
   const translate = useTranslate();
-  if (!record.website && !record.linkedin_url && !record.phone_number) {
+  const { companySectors } = useConfigurationContext();
+  const sectorLabel = companySectors.find(
+    (s) => s.value === record.sector,
+  )?.label;
+  if (
+    !record.website &&
+    !record.linkedin_url &&
+    !record.phone_number &&
+    !record.email &&
+    !sectorLabel
+  ) {
     return null;
   }
 
@@ -102,20 +112,34 @@ export const CompanyInfo = ({ record }: { record: Company }) => {
           <TextField source="phone_number" />
         </div>
       )}
+      {record.email && (
+        <div className="flex flex-row items-center gap-1 min-h-[24px]">
+          <Mail className="w-4 h-4" />
+          <a
+            className="underline hover:no-underline break-all"
+            href={`mailto:${record.email}`}
+          >
+            {record.email}
+          </a>
+        </div>
+      )}
+      {sectorLabel && (
+        <div className="flex flex-row items-center gap-1 min-h-[24px]">
+          <Briefcase className="w-4 h-4" />
+          <span>{sectorLabel}</span>
+        </div>
+      )}
     </AsideSection>
   );
 };
 
 export const ContextInfo = ({ record }: { record: Company }) => {
-  const { companySectors, companyCompetitors, companyLeadSources } =
-    useConfigurationContext();
+  const { companyCompetitors, companyLeadSources } = useConfigurationContext();
   const translate = useTranslate();
   if (!record.revenue && !record.id) {
     return null;
   }
 
-  const sector = companySectors.find((s) => s.value === record.sector);
-  const sectorLabel = sector?.label;
   const competitorLabel = companyCompetitors.find(
     (c) => c.value === record.competitor,
   )?.label;
@@ -131,11 +155,6 @@ export const ContextInfo = ({ record }: { record: Company }) => {
     <AsideSection
       title={translate("resources.companies.field_categories.context")}
     >
-      {sectorLabel && (
-        <span>
-          {translate("resources.companies.fields.sector")}: {sectorLabel}
-        </span>
-      )}
       {leadSourceLabel && (
         <span>
           {translate("resources.companies.fields.lead_source")}:{" "}

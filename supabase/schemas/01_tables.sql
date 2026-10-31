@@ -36,7 +36,8 @@ create table public.companies (
     tags bigint[] not null default '{}',
     whatsapp_opt_in boolean not null default false,
     whatsapp_opted_out boolean not null default false,
-    enriched_at timestamp with time zone
+    enriched_at timestamp with time zone,
+    email text
 );
 
 create table public.contacts (
