@@ -24,6 +24,7 @@ import {
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { StartCallButton } from "../calls/StartCallButton";
+import { EnrichButton } from "./EnrichButton";
 import { CompanyCallsTab } from "./CompanyCallsTab";
 import { CompanyWhatsAppTab } from "./CompanyWhatsAppTab";
 import { CompanyTagsList } from "./CompanyTagsList";
@@ -141,6 +142,7 @@ const CompanyShowContent = () => {
                 Send SMS
               </Button>
               <StartCallButton company={record} />
+              <EnrichButton company={record} />
               <SendSmsDialog
                 company={record}
                 open={smsOpen}

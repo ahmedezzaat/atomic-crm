@@ -211,3 +211,6 @@ verify_jwt = false
 
 [functions.wa_campaign_send]
 verify_jwt = false
+
+[functions.company_enrich]
+verify_jwt = false

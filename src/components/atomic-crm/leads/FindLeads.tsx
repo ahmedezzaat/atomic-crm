@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+import { enrichCompanies } from "../companies/enrich";
 import { getSupabaseClient } from "../providers/supabase/supabase";
 
 type Place = {
@@ -117,6 +118,7 @@ export const FindLeads = () => {
   const [nextToken, setNextToken] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [enrich, setEnrich] = useState(true);
 
   useEffect(() => {
     call<{ configured: boolean }>({ action: "status" })
@@ -168,7 +170,11 @@ export const FindLeads = () => {
     setBusy(true);
     try {
       const items = places.filter((p) => selected.has(p.place_id));
-      const res = await call<{ created: number; skipped: number }>({
+      const res = await call<{
+        created: number;
+        skipped: number;
+        ids: number[];
+      }>({
         action: "import",
         items,
         city: area.trim(),
@@ -177,6 +183,26 @@ export const FindLeads = () => {
       notify(
         `${res.created} added to the CRM${res.skipped ? `, ${res.skipped} skipped (already there)` : ""}`,
       );
+      if (enrich && res.ids.length > 0) {
+        notify("Looking for emails and numbers on their websites…");
+        let emails = 0;
+        let phones = 0;
+        try {
+          for (let i = 0; i < res.ids.length; i += 25) {
+            const r = await enrichCompanies(res.ids.slice(i, i + 25));
+            emails += r.emails;
+            phones += r.phones;
+          }
+          notify(`Found ${emails} email(s) and ${phones} extra number(s).`);
+        } catch (e) {
+          notify(
+            `Companies were added, but enrichment failed: ${(e as Error).message}`,
+            {
+              type: "warning",
+            },
+          );
+        }
+      }
       const done = new Set(items.map((i) => i.place_id));
       setPlaces((p) =>
         p.map((x) => (done.has(x.place_id) ? { ...x, exists: true } : x)),
@@ -281,7 +307,15 @@ export const FindLeads = () => {
                 {places.length} results, {selected.size} selected. Imported
                 companies get a deal in the first stage and a task for you.
               </p>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={enrich}
+                    onChange={(e) => setEnrich(e.target.checked)}
+                  />
+                  Also look for emails on their websites
+                </label>
                 <Button
                   size="sm"
                   variant="outline"

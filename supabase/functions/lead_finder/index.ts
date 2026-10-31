@@ -217,6 +217,7 @@ Deno.serve((req: Request) =>
           );
 
           let created = 0;
+          const ids: number[] = [];
           let skipped = 0;
           for (const item of items) {
             const name = str(item.name, 200);
@@ -286,8 +287,9 @@ Deno.serve((req: Request) =>
               due_date: new Date(Date.now() + 86400_000).toISOString(),
             });
             created++;
+            ids.push(company.id);
           }
-          return json({ created, skipped });
+          return json({ created, skipped, ids });
         }
 
         return createErrorResponse(400, "Unknown action");

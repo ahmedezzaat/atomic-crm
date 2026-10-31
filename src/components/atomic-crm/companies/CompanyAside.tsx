@@ -211,10 +211,6 @@ export const AdditionalInfo = ({ record }: { record: Company }) => {
   ) {
     return null;
   }
-  const getBaseURL = (url: string) => {
-    const urlObject = new URL(url.startsWith("http") ? url : `https://${url}`);
-    return urlObject.hostname;
-  };
 
   return (
     <AsideSection
@@ -235,7 +231,7 @@ export const AdditionalInfo = ({ record }: { record: Company }) => {
                 rel="noopener noreferrer"
                 title={link}
               >
-                {getBaseURL(link)}
+                {link.replace(/^https?:\/\/(www\.)?/, "")}
               </a>
             ) : null,
           )}
