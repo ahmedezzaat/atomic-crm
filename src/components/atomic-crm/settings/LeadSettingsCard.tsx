@@ -25,6 +25,7 @@ type Status = {
   app_id: string;
   config_id: string;
   waba_id: string;
+  display_phone?: string;
   mode: "cloud" | "coexistence";
 };
 
@@ -238,7 +239,8 @@ export const LeadSettingsCard = () => {
         for (let i = 0; i < 20 && !session && !cancelled; i++) {
           await new Promise((r) => setTimeout(r, 250));
         }
-        if (!code || cancelled || !session) {
+        // already-connected numbers skip the details message: the server finds them
+        if (!code || cancelled) {
           throw new Error(
             `Meta did not finish the connection. Login: ${loginStatus}; code received: ${code ? "yes" : "no"}; Meta events: ${seen.join(", ") || "none"}. Send this line to support.`,
           );
@@ -246,8 +248,8 @@ export const LeadSettingsCard = () => {
         const result = await call({
           action: "connect_coexistence",
           code,
-          waba_id: session.waba_id,
-          phone_number_id: session.phone_number_id,
+          waba_id: session?.waba_id,
+          phone_number_id: session?.phone_number_id,
         });
         setStatus(result);
         setPlain((v) => ({

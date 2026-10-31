@@ -27,6 +27,57 @@ const PLAIN_FIELDS = {
   config_id: "wa_config_id",
 } as const;
 
+/** Which WhatsApp account and number a sign-in was granted, asked from Meta. */
+async function discoverAccount(
+  accessToken: string,
+  appId: string,
+  appSecret: string,
+  knownWaba: string,
+  knownPhone: string,
+) {
+  const none = { wabaId: "", phoneNumberId: "" };
+  const debugUrl = new URL(`${API_BASE}/debug_token`);
+  debugUrl.searchParams.set("input_token", accessToken);
+  debugUrl.searchParams.set("access_token", `${appId}|${appSecret}`);
+  const debug = await fetch(debugUrl)
+    .then((r) => r.json())
+    .catch(() => ({}));
+  const scopes: { scope: string; target_ids?: string[] }[] =
+    debug?.data?.granular_scopes ?? [];
+  const wabaIds = scopes
+    .filter((s) => s.scope === "whatsapp_business_management")
+    .flatMap((s) => s.target_ids ?? []);
+  const options: { wabaId: string; phoneNumberId: string }[] = [];
+  for (const wabaId of wabaIds) {
+    const list = await fetch(`${API_BASE}/${wabaId}/phone_numbers?fields=id`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((r) => r.json())
+      .catch(() => ({}));
+    for (const n of list?.data ?? []) {
+      options.push({ wabaId, phoneNumberId: String(n.id) });
+    }
+  }
+  return (
+    options.find((o) => o.phoneNumberId === knownPhone) ??
+    options.find((o) => o.wabaId === knownWaba) ??
+    options[0] ??
+    none
+  );
+}
+
+async function phoneDetails(accessToken: string, phoneNumberId: string) {
+  const details = await fetch(
+    `${API_BASE}/${phoneNumberId}?fields=display_phone_number,verified_name`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  )
+    .then((r) => r.json())
+    .catch(() => ({}));
+  return details?.display_phone_number
+    ? `${details.display_phone_number}${details.verified_name ? ` (${details.verified_name})` : ""}`
+    : "";
+}
+
 const hint = (value?: string) =>
   value ? { set: true, hint: value.slice(-4) } : { set: false, hint: "" };
 const json = (body: unknown) =>
@@ -76,13 +127,12 @@ Deno.serve(async (req: Request) =>
           const appId = await getSecret("wa_app_id");
           const appSecret = await getSecret("wa_app_secret");
           const code = String(body.code ?? "");
-          const wabaId = String(body.waba_id ?? "");
-          const phoneNumberId = String(body.phone_number_id ?? "");
+          let wabaId = String(body.waba_id ?? "");
+          let phoneNumberId = String(body.phone_number_id ?? "");
           if (!appId || !appSecret) {
             connectError = "Save the Meta App ID and the App secret first";
-          } else if (!code || !wabaId || !phoneNumberId) {
-            connectError =
-              "Meta did not return the account details. Try again.";
+          } else if (!code) {
+            connectError = "Meta did not return a sign-in code. Try again.";
           } else {
             const url = new URL(`${API_BASE}/oauth/access_token`);
             url.searchParams.set("client_id", appId);
@@ -93,22 +143,46 @@ Deno.serve(async (req: Request) =>
             if (!exchange.ok || !token.access_token) {
               connectError = `Meta refused the sign-in: ${token?.error?.message ?? exchange.status}`;
             } else {
-              // let the app receive this account's messages
-              const subscribe = await fetch(
-                `${API_BASE}/${wabaId}/subscribed_apps`,
-                {
-                  method: "POST",
-                  headers: { Authorization: `Bearer ${token.access_token}` },
-                },
-              );
-              if (!subscribe.ok) {
-                const detail = await subscribe.json().catch(() => ({}));
-                connectError = `Connected, but Meta would not subscribe the app: ${detail?.error?.message ?? subscribe.status}`;
+              // Meta sends the account and number ids in a browser message, but skips
+              // it when the number is already connected. Then ask Meta what this
+              // sign-in was granted, preferring the account we already know.
+              if (!wabaId || !phoneNumberId) {
+                const found = await discoverAccount(
+                  token.access_token,
+                  appId,
+                  appSecret,
+                  (await getSecret("wa_waba_id")) ?? "",
+                  (await getSecret("wa_phone_number_id")) ?? "",
+                );
+                wabaId = found.wabaId;
+                phoneNumberId = found.phoneNumberId;
               }
-              await setSecret("wa_access_token", token.access_token);
-              await setSecret("wa_phone_number_id", phoneNumberId);
-              await setSecret("wa_waba_id", wabaId);
-              await setSecret("wa_connection_mode", "coexistence");
+              if (!wabaId || !phoneNumberId) {
+                connectError =
+                  "Signed in, but Meta shows no WhatsApp number on this login. Make sure the number is active in the WhatsApp Business app and that you pick its business account.";
+              } else {
+                // let the app receive this account's messages
+                const subscribe = await fetch(
+                  `${API_BASE}/${wabaId}/subscribed_apps`,
+                  {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${token.access_token}` },
+                  },
+                );
+                if (!subscribe.ok) {
+                  const detail = await subscribe.json().catch(() => ({}));
+                  connectError = `Connected, but Meta would not subscribe the app: ${detail?.error?.message ?? subscribe.status}`;
+                }
+                await setSecret("wa_access_token", token.access_token);
+                await setSecret("wa_phone_number_id", phoneNumberId);
+                await setSecret("wa_waba_id", wabaId);
+                await setSecret("wa_connection_mode", "coexistence");
+                const shown = await phoneDetails(
+                  token.access_token,
+                  phoneNumberId,
+                );
+                if (shown) await setSecret("wa_display_phone", shown);
+              }
             }
           }
         }
@@ -128,6 +202,7 @@ Deno.serve(async (req: Request) =>
           app_id: await plain(PLAIN_FIELDS.app_id),
           config_id: await plain(PLAIN_FIELDS.config_id),
           waba_id: await plain("wa_waba_id"),
+          display_phone: await plain("wa_display_phone"),
           mode: (await plain("wa_connection_mode")) || "cloud",
           phone_number_id: await plain(PLAIN_FIELDS.phone_number_id),
           template_name: await plain(PLAIN_FIELDS.template_name),
