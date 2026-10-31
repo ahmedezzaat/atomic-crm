@@ -14,7 +14,7 @@ const SMS_URL = "https://apis.cequens.com/sms/v1/messages";
 const DRY_RUN = Deno.env.get("SMS_DRY_RUN") === "true";
 const CONCURRENCY = 8;
 
-type Audience = Record<string, string | undefined>;
+type Audience = Record<string, string | boolean | undefined>;
 
 let cachedToken: string | undefined;
 
@@ -123,6 +123,42 @@ async function sendOne(opts: {
   return { error: "Unauthorized" };
 }
 
+/** Companies an audience points at, with a valid phone, one per number. */
+async function resolveTargets(audience: Audience) {
+  let query = supabaseAdmin
+    .from("companies")
+    .select("id,name,city,phone_number,is_customer")
+    .not("phone_number", "is", null);
+  for (const key of ["city", "sector", "competitor"]) {
+    if (audience[key]) query = query.eq(key, String(audience[key]));
+  }
+  if (audience.size) query = query.eq("size", Number(audience.size));
+  // single-company messages sent from a company profile
+  if (audience.company_id) query = query.eq("id", Number(audience.company_id));
+  const { data: companies, error } = await query.limit(5000);
+  if (error) throw error;
+
+  // "new only": nothing for companies with a deal, a subscription or a customer flag
+  const busy = new Set<number>();
+  if (audience.new_only) {
+    const [{ data: deals }, { data: subs }] = await Promise.all([
+      supabaseAdmin.from("deals").select("company_id").limit(100000),
+      supabaseAdmin.from("subscriptions").select("company_id").limit(100000),
+    ]);
+    for (const d of deals ?? []) busy.add(d.company_id);
+    for (const sub of subs ?? []) busy.add(sub.company_id);
+  }
+
+  const seen = new Set<string>();
+  return (companies ?? []).flatMap((c) => {
+    if (audience.new_only && (c.is_customer || busy.has(c.id))) return [];
+    const phone = normalizePhone(c.phone_number);
+    if (!phone || seen.has(phone)) return [];
+    seen.add(phone);
+    return [{ company: c, phone }];
+  });
+}
+
 async function runCampaign(campaignId: number) {
   const { data: campaign } = await supabaseAdmin
     .from("sms_campaigns")
@@ -134,27 +170,7 @@ async function runCampaign(campaignId: number) {
   try {
     // Resolve the audience on the server so the list can't be tampered with
     const audience = (campaign.audience ?? {}) as Audience;
-    let query = supabaseAdmin
-      .from("companies")
-      .select("id,name,city,phone_number")
-      .not("phone_number", "is", null);
-    for (const key of ["city", "sector", "competitor"]) {
-      if (audience[key]) query = query.eq(key, audience[key]!);
-    }
-    if (audience.size) query = query.eq("size", Number(audience.size));
-    // single-company messages sent from a company profile
-    if (audience.company_id)
-      query = query.eq("id", Number(audience.company_id));
-    const { data: companies, error } = await query.limit(5000);
-    if (error) throw error;
-
-    const seen = new Set<string>();
-    const targets = (companies ?? []).flatMap((c) => {
-      const phone = normalizePhone(c.phone_number);
-      if (!phone || seen.has(phone)) return [];
-      seen.add(phone);
-      return [{ company: c, phone }];
-    });
+    const targets = await resolveTargets(audience);
     if (targets.length === 0)
       throw new Error("No recipients with a valid phone number");
 
@@ -248,7 +264,14 @@ Deno.serve(async (req: Request) =>
         if (req.method !== "POST") {
           return createErrorResponse(405, "Method Not Allowed");
         }
-        const { campaign_id } = await req.json().catch(() => ({}));
+        const body = await req.json().catch(() => ({}));
+        if (body.action === "preview") {
+          const list = await resolveTargets((body.audience ?? {}) as Audience);
+          return new Response(JSON.stringify({ recipients: list.length }), {
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
+        const { campaign_id } = body;
         if (!campaign_id)
           return createErrorResponse(400, "Missing campaign_id");
         if (

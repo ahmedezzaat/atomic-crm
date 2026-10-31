@@ -47,7 +47,8 @@ type Draft = {
   name: string;
   sender_id: string;
   message: string;
-  audience: Required<Omit<SmsAudience, "company_id">>;
+  audience: Required<Omit<SmsAudience, "company_id" | "new_only">>;
+  new_only: boolean;
   schedule: "now" | "later";
   schedule_at: string;
 };
@@ -57,6 +58,7 @@ const emptyDraft = (): Draft => ({
   sender_id: "Kords",
   message: "",
   audience: { city: ANY, sector: ANY, competitor: ANY, size: ANY },
+  new_only: false,
   schedule: "now",
   schedule_at: "",
 });
@@ -104,6 +106,7 @@ export const SmsCampaignForm = () => {
       sender_id: saved.sender_id,
       message: saved.message,
       audience: { ...emptyDraft().audience, ...saved.audience },
+      new_only: saved.audience?.new_only === true,
       schedule: saved.schedule_at ? "later" : "now",
       schedule_at: toLocalInput(saved.schedule_at),
     });
@@ -140,10 +143,35 @@ export const SmsCampaignForm = () => {
       .filter(([, v]) => v !== ANY)
       .map(([k, v]) => [k, k === "size" ? Number(v) : v]),
   );
-  const { total: recipients = 0, isPending: countPending } = useGetList(
+  const { total: listTotal = 0, isPending: listPending } = useGetList(
     "companies",
     { pagination: { page: 1, perPage: 1 }, filter },
+    { enabled: !draft.new_only },
   );
+  // "new only" needs deals and subscriptions, so the server counts it
+  const [newOnlyCount, setNewOnlyCount] = useState<number>();
+  const audienceKey = JSON.stringify(filter);
+  useEffect(() => {
+    if (!draft.new_only) return;
+    setNewOnlyCount(undefined);
+    const timer = setTimeout(() => {
+      getSupabaseClient()
+        .functions.invoke<{ recipients: number }>("sms_send", {
+          method: "POST",
+          body: {
+            action: "preview",
+            audience: { ...JSON.parse(audienceKey), new_only: true },
+          },
+        })
+        .then(({ data }) => setNewOnlyCount(data?.recipients ?? 0))
+        .catch(() => setNewOnlyCount(0));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [draft.new_only, audienceKey]);
+  const recipients = draft.new_only ? (newOnlyCount ?? 0) : listTotal;
+  const countPending = draft.new_only
+    ? newOnlyCount === undefined
+    : listPending;
 
   const sms = measureSms(draft.message);
   const sample = fillPlaceholders(draft.message, {
@@ -161,9 +189,12 @@ export const SmsCampaignForm = () => {
     name: draft.name.trim(),
     sender_id: draft.sender_id.trim(),
     message: draft.message,
-    audience: Object.fromEntries(
-      Object.entries(draft.audience).filter(([, v]) => v !== ANY),
-    ),
+    audience: {
+      ...Object.fromEntries(
+        Object.entries(draft.audience).filter(([, v]) => v !== ANY),
+      ),
+      ...(draft.new_only ? { new_only: true } : {}),
+    },
     schedule_at:
       draft.schedule === "later" && draft.schedule_at
         ? new Date(draft.schedule_at).toISOString()
@@ -357,6 +388,15 @@ export const SmsCampaignForm = () => {
                   )),
                 )}
               </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={draft.new_only}
+                  disabled={locked}
+                  onChange={(e) => set("new_only", e.target.checked)}
+                />
+                Only companies with no deal and not a customer
+              </label>
               <p className="text-xs text-muted-foreground">
                 Messages go to each company's phone number. Companies without a
                 valid phone number are skipped when sending.

@@ -6,6 +6,7 @@ export type SmsAudience = {
   competitor?: string;
   size?: string;
   company_id?: string;
+  new_only?: boolean;
 };
 
 export type SmsCampaign = {
