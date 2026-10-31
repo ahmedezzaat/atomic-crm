@@ -92,11 +92,14 @@ const DealShowContent = () => {
               </span>
               <div className="flex items-center gap-2">
                 <span className="text-sm">
-                  {isValid(new Date(record.expected_closing_date))
-                    ? formatISODateString(record.expected_closing_date)
-                    : translate("resources.deals.invalid_date")}
+                  {!record.expected_closing_date
+                    ? "-"
+                    : isValid(new Date(record.expected_closing_date))
+                      ? formatISODateString(record.expected_closing_date)
+                      : translate("resources.deals.invalid_date")}
                 </span>
-                {new Date(record.expected_closing_date) < new Date() ? (
+                {record.expected_closing_date &&
+                new Date(record.expected_closing_date) < new Date() ? (
                   <Badge variant="destructive">
                     {translate("crm.common.past")}
                   </Badge>
