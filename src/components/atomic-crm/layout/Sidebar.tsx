@@ -3,6 +3,7 @@ import {
   CheckSquare,
   ChevronDown,
   Handshake,
+  Inbox,
   LayoutDashboard,
   Megaphone,
   MessageCircle,
@@ -138,6 +139,7 @@ export const Sidebar = () => {
           label={translate("resources.tasks.name", { smart_count: 2 })}
           icon={CheckSquare}
         />
+        <NavItem to="/inbox" label="Inbox" icon={Inbox} />
         <NavItem to="/find-leads" label="Find leads" icon={Radar} />
         <NavItem to="/calls" label="Calls" icon={Phone} />
         <CampaignsGroup />

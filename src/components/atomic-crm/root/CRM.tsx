@@ -26,6 +26,7 @@ import { CallList } from "../calls/CallList";
 import { CallPage } from "../calls/CallPage";
 import { GuestCallPage } from "../calls/GuestCallPage";
 import { LeadForm } from "../leads/LeadForm";
+import { WhatsAppInbox } from "../whatsapp/WhatsAppInbox";
 import { WaCampaignList } from "../whatsapp/WaCampaignList";
 import { WaCampaignForm } from "../whatsapp/WaCampaignForm";
 import { FindLeads } from "../leads/FindLeads";
@@ -297,6 +298,7 @@ const DesktopAdmin = (
         <Route path="/calls" element={<CallList />} />
         <Route path="/calls/:id" element={<CallPage />} />
         <Route path="/find-leads" element={<FindLeads />} />
+        <Route path="/inbox" element={<WhatsAppInbox />} />
         <Route path="/wa-campaigns" element={<WaCampaignList />} />
         <Route path="/wa-campaigns/new" element={<WaCampaignForm />} />
         <Route path="/wa-campaigns/:id" element={<WaCampaignForm />} />
