@@ -22,6 +22,18 @@ type Status = {
   webhook_url: string;
   lead_url: string;
   connect_error?: string;
+  check?: {
+    number: {
+      display_phone_number?: string;
+      verified_name?: string;
+      status?: string;
+      quality_rating?: string;
+      platform_type?: string;
+      name_status?: string;
+    } | null;
+    templates: { name: string; language: string; status: string }[];
+    problems: string[];
+  };
   app_id: string;
   config_id: string;
   waba_id: string;
@@ -118,6 +130,8 @@ export const LeadSettingsCard = () => {
   const [method, setMethod] = useState<Method>("cloud");
   const [ids, setIds] = useState({ app_id: "", config_id: "" });
   const [connecting, setConnecting] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [report, setReport] = useState<Status["check"]>();
 
   const call = async (body: Record<string, unknown>) => {
     const { data, error } = await getSupabaseClient().functions.invoke<Status>(
@@ -271,6 +285,18 @@ export const LeadSettingsCard = () => {
       notify(`Could not connect: ${(e as Error).message}`, { type: "error" });
     } finally {
       setConnecting(false);
+    }
+  };
+
+  const checkConnection = async () => {
+    setChecking(true);
+    try {
+      const result = await call({ action: "check" });
+      setReport(result.check);
+    } catch (e) {
+      notify(`Could not check: ${(e as Error).message}`, { type: "error" });
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -508,6 +534,98 @@ export const LeadSettingsCard = () => {
         >
           {saving ? "Saving…" : "Save WhatsApp settings"}
         </Button>
+
+        {status?.phone_number_id && (
+          <div className="space-y-3 rounded-md border p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="font-medium">Check the connection</p>
+                <p className="text-xs text-muted-foreground">
+                  Asks Meta whether the saved connection works and which
+                  templates your WhatsApp account has.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={checkConnection}
+                disabled={checking}
+              >
+                {checking ? "Checking…" : "Check connection"}
+              </Button>
+            </div>
+            {report && (
+              <div className="space-y-2 text-sm">
+                {report.problems.map((p) => (
+                  <p key={p} className="text-destructive">
+                    {p}
+                  </p>
+                ))}
+                {report.number && (
+                  <p>
+                    Number:{" "}
+                    <b dir="ltr">{report.number.display_phone_number ?? "?"}</b>
+                    {report.number.verified_name
+                      ? ` (${report.number.verified_name})`
+                      : ""}
+                    {" · "}status: <b>{report.number.status ?? "unknown"}</b>
+                    {report.number.quality_rating
+                      ? ` · quality: ${report.number.quality_rating}`
+                      : ""}
+                    {report.number.platform_type
+                      ? ` · platform: ${report.number.platform_type}`
+                      : ""}
+                  </p>
+                )}
+                <div>
+                  <p className="font-medium">
+                    Templates ({report.templates.length})
+                  </p>
+                  {report.templates.length === 0 ? (
+                    <p className="text-muted-foreground">
+                      None found on this WhatsApp account. Create one in
+                      WhatsApp Manager.
+                    </p>
+                  ) : (
+                    <ul className="mt-1 space-y-1">
+                      {report.templates.map((t) => (
+                        <li
+                          key={`${t.name}-${t.language}`}
+                          className="flex items-center justify-between gap-2 rounded bg-muted px-2 py-1"
+                        >
+                          <span dir="ltr">
+                            {t.name} · {t.language} · <b>{t.status}</b>
+                          </span>
+                          {t.status === "APPROVED" && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                setPlain((v) => ({
+                                  ...v,
+                                  template_name: t.name,
+                                  template_language: t.language,
+                                }))
+                              }
+                            >
+                              Use for welcome
+                            </Button>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    "Use for welcome" fills the name and language above. Then
+                    set whether it has a name variable and click Save.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {status && (
           <div className="space-y-3 border-t pt-4">

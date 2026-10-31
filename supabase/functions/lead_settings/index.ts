@@ -211,6 +211,55 @@ Deno.serve(async (req: Request) =>
             }
           }
         }
+        let check: unknown;
+        if (body.action === "check") {
+          // Does the saved connection work, and which templates does the account have?
+          const token = await getSecret("wa_access_token");
+          const phoneId = await getSecret("wa_phone_number_id");
+          const wabaId = (await getSecret("wa_waba_id")) ?? "";
+          const problems: string[] = [];
+          let number: Record<string, unknown> | null = null;
+          let templates: { name: string; language: string; status: string }[] =
+            [];
+          if (!token || !phoneId) {
+            problems.push("WhatsApp is not connected yet.");
+          } else {
+            const auth = { headers: { Authorization: `Bearer ${token}` } };
+            const phone = await fetch(
+              `${API_BASE}/${phoneId}?fields=display_phone_number,verified_name,status,quality_rating,platform_type,code_verification_status,name_status`,
+              auth,
+            )
+              .then((r) => r.json())
+              .catch(() => ({}));
+            if (phone?.error) {
+              problems.push(`Meta says: ${phone.error.message}`);
+            } else {
+              number = phone;
+            }
+            if (wabaId) {
+              const list = await fetch(
+                `${API_BASE}/${wabaId}/message_templates?fields=name,language,status&limit=100`,
+                auth,
+              )
+                .then((r) => r.json())
+                .catch(() => ({}));
+              if (list?.error) {
+                problems.push(`Templates: ${list.error.message}`);
+              } else {
+                templates = (list?.data ?? []).map((t: any) => ({
+                  name: String(t.name),
+                  language: String(t.language),
+                  status: String(t.status),
+                }));
+              }
+            } else {
+              problems.push(
+                "No WhatsApp account id is saved, so templates can't be listed.",
+              );
+            }
+          }
+          check = { number, templates, problems, waba_id: wabaId };
+        }
         if (body.action === "new_lead_key") {
           // shown once: only a hash-free hint is kept readable afterwards
           newLeadKey = crypto.randomUUID().replaceAll("-", "");
@@ -224,6 +273,7 @@ Deno.serve(async (req: Request) =>
           lead_api_key: hint(await getSecret("lead_api_key")),
           new_lead_key: newLeadKey,
           connect_error: connectError,
+          check,
           app_id: await plain(PLAIN_FIELDS.app_id),
           config_id: await plain(PLAIN_FIELDS.config_id),
           waba_id: await plain("wa_waba_id"),
