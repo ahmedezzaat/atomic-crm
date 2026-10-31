@@ -112,3 +112,6 @@ create policy "Enable read access for authenticated users" on public.wa_campaign
 create policy "Enable insert for authenticated users only" on public.wa_campaigns for insert to authenticated with check (true);
 create policy "WA Campaign Update Policy" on public.wa_campaigns for update to authenticated using (true);
 create policy "WA Campaign Delete Policy" on public.wa_campaigns for delete to authenticated using (true);
+
+alter table public.lead_searches enable row level security;
+create policy "Enable read access for authenticated users" on public.lead_searches for select to authenticated using (true);

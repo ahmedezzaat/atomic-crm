@@ -16,6 +16,8 @@ export type WaCampaign = {
   with_name: boolean;
   audience: WaAudience;
   daily_cap: number;
+  auto_daily: boolean;
+  send_hour: number;
   status: WaStatus;
   error: string | null;
   nb_messages?: number;

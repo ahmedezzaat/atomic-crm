@@ -41,6 +41,8 @@ type Draft = {
   template_language: string;
   with_name: boolean;
   daily_cap: number;
+  auto_daily: boolean;
+  send_hour: number;
   audience: Required<WaAudience>;
 };
 
@@ -50,6 +52,8 @@ const emptyDraft = (): Draft => ({
   template_language: "ar",
   with_name: true,
   daily_cap: 50,
+  auto_daily: false,
+  send_hour: 10,
   audience: {
     lead_source: ANY,
     tag: ANY,
@@ -107,6 +111,8 @@ export const WaCampaignForm = () => {
       template_language: saved.template_language,
       with_name: saved.with_name,
       daily_cap: saved.daily_cap,
+      auto_daily: saved.auto_daily,
+      send_hour: saved.send_hour,
       audience: { ...emptyDraft().audience, ...saved.audience },
     });
     // load once per campaign id, not on every refetch
@@ -156,8 +162,11 @@ export const WaCampaignForm = () => {
       template_language: draft.template_language.trim() || "ar",
       with_name: draft.with_name,
       daily_cap: draft.daily_cap,
+      auto_daily: draft.auto_daily,
+      send_hour: draft.send_hour,
       audience,
     };
+    if (draft.auto_daily) await invoke({ action: "arm" });
     if (id) {
       await update(
         "wa_campaigns",
@@ -404,6 +413,31 @@ export const WaCampaignForm = () => {
                 Start low (about 50) so Meta sees good replies before you raise
                 it.
               </p>
+              <label className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  checked={draft.auto_daily}
+                  onChange={(e) => set("auto_daily", e.target.checked)}
+                />
+                Send the next batch automatically every day
+              </label>
+              {draft.auto_daily && (
+                <div className="flex items-center gap-2">
+                  <span>at</span>
+                  <select
+                    value={draft.send_hour}
+                    onChange={(e) => set("send_hour", Number(e.target.value))}
+                    className="h-9 rounded-md border bg-background px-2"
+                  >
+                    {Array.from({ length: 24 }, (_, h) => (
+                      <option key={h} value={h}>
+                        {String(h).padStart(2, "0")}:00
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-muted-foreground">Cairo time</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Sent in last 24h</span>
                 <span>{sent24h}</span>

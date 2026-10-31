@@ -13,6 +13,7 @@ import {
 // Staff sends a WhatsApp message to a company from its profile:
 //   {company_id, text}      free text (works within 24 h of their last message)
 //   {company_id, template}  the welcome template (can start a conversation)
+//   {action:"open_deal", company_id}  the lead is interested: open a deal for them
 //   {phone, text}           free text to a number that is not a company yet
 //                           (someone who wrote to us first, from the inbox)
 const json = (body: unknown, status = 200) =>
@@ -43,6 +44,75 @@ Deno.serve(async (req: Request) =>
             .is("company_id", null);
           if (error) return createErrorResponse(500, error.message);
           return json({ status: "linked" });
+        }
+        if (body.action === "open_deal") {
+          if (!companyId) return createErrorResponse(400, "Missing company_id");
+          const { data: company } = await supabaseAdmin
+            .from("companies")
+            .select("id,name,sales_id")
+            .eq("id", companyId)
+            .maybeSingle();
+          if (!company) return createErrorResponse(404, "Company not found");
+          const { data: open } = await supabaseAdmin
+            .from("deals")
+            .select("id")
+            .eq("company_id", companyId)
+            .is("archived_at", null)
+            .limit(1)
+            .maybeSingle();
+          if (open) return json({ deal_id: open.id, existing: true });
+
+          const { data: sale } = await supabaseAdmin
+            .from("sales")
+            .select("id")
+            .eq("user_id", user!.id)
+            .maybeSingle();
+          const { data: cfg } = await supabaseAdmin
+            .from("configuration")
+            .select("config")
+            .eq("id", 1)
+            .maybeSingle();
+          const stage =
+            (cfg?.config as any)?.dealStages?.[0]?.value ?? "opportunity";
+          const category =
+            (cfg?.config as any)?.dealCategories?.[0]?.value ?? "other";
+          const { data: last } = await supabaseAdmin
+            .from("deals")
+            .select("index")
+            .eq("stage", stage)
+            .order("index", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const owner = company.sales_id ?? sale?.id ?? null;
+          const { data: deal, error } = await supabaseAdmin
+            .from("deals")
+            .insert({
+              name: company.name,
+              company_id: companyId,
+              stage,
+              category,
+              amount: 0,
+              sales_id: owner,
+              index: (last?.index ?? -1) + 1,
+              contact_ids: [],
+            })
+            .select("id")
+            .single();
+          if (error) return createErrorResponse(500, error.message);
+          if (!company.sales_id && owner) {
+            await supabaseAdmin
+              .from("companies")
+              .update({ sales_id: owner })
+              .eq("id", companyId);
+          }
+          await supabaseAdmin.from("tasks").insert({
+            company_id: companyId,
+            sales_id: owner,
+            type: "none",
+            text: `Follow up with ${company.name}: interested on WhatsApp`,
+            due_date: new Date().toISOString(),
+          });
+          return json({ deal_id: deal.id, existing: false });
         }
         const rawPhone = normalizePhone(String(body.phone ?? ""));
         if (!companyId && !rawPhone) {

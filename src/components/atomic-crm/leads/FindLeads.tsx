@@ -119,11 +119,31 @@ export const FindLeads = () => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [enrich, setEnrich] = useState(true);
+  const [previous, setPrevious] = useState<{
+    created_at: string;
+    results: number;
+    imported: number;
+  } | null>(null);
+  const [searchId, setSearchId] = useState<number | null>(null);
+  const [history, setHistory] = useState<
+    {
+      id: number;
+      created_at: string;
+      query: string;
+      results: number;
+      imported: number;
+    }[]
+  >([]);
+  const loadHistory = () =>
+    call<{ searches: typeof history }>({ action: "history" })
+      .then((r) => setHistory(r.searches))
+      .catch(() => undefined);
 
   useEffect(() => {
     call<{ configured: boolean }>({ action: "status" })
       .then((s) => setConfigured(s.configured))
       .catch(() => setConfigured(false));
+    loadHistory();
   }, []);
 
   const saveKey = async () => {
@@ -147,6 +167,8 @@ export const FindLeads = () => {
       const res = await call<{
         places: Place[];
         next_page_token: string | null;
+        previous?: typeof previous;
+        search_id?: number | null;
       }>({
         action: "search",
         query: `${segment.query} in ${area.trim()}`,
@@ -157,7 +179,12 @@ export const FindLeads = () => {
         const seen = new Set(base.map((x) => x.place_id));
         return [...base, ...res.places.filter((x) => !seen.has(x.place_id))];
       });
-      if (!more) setSelected(new Set());
+      if (!more) {
+        setSelected(new Set());
+        setPrevious(res.previous ?? null);
+        setSearchId(res.search_id ?? null);
+        loadHistory();
+      }
       setNextToken(res.next_page_token);
     } catch (e) {
       notify((e as Error).message, { type: "error" });
@@ -179,6 +206,7 @@ export const FindLeads = () => {
         items,
         city: area.trim(),
         segment: segment.label,
+        search_id: searchId,
       });
       notify(
         `${res.created} added to the CRM${res.skipped ? `, ${res.skipped} skipped (already there)` : ""}`,
@@ -299,13 +327,25 @@ export const FindLeads = () => {
         </CardContent>
       </Card>
 
+      {previous && (
+        <Card>
+          <CardContent className="text-sm">
+            You already searched this on{" "}
+            {new Date(previous.created_at).toLocaleDateString()}: it found{" "}
+            {previous.results} results and you added {previous.imported}.
+            Searching again costs another Google request.
+          </CardContent>
+        </Card>
+      )}
+
       {places.length > 0 && (
         <Card>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
                 {places.length} results, {selected.size} selected. Imported
-                companies get a deal in the first stage and a task for you.
+                companies are added without a deal; open one from the Inbox when
+                they show interest.
               </p>
               <div className="flex items-center gap-3">
                 <label className="flex items-center gap-2 text-sm">
@@ -395,6 +435,27 @@ export const FindLeads = () => {
                 Load more
               </Button>
             )}
+          </CardContent>
+        </Card>
+      )}
+      {history.length > 0 && (
+        <Card>
+          <CardContent className="space-y-2">
+            <p className="text-sm font-medium">Recent searches</p>
+            <div className="text-sm text-muted-foreground">
+              {history.map((h) => (
+                <div
+                  key={h.id}
+                  className="flex justify-between border-b py-1 last:border-0"
+                >
+                  <span>{h.query}</span>
+                  <span>
+                    {new Date(h.created_at).toLocaleDateString()} · {h.results}{" "}
+                    found · {h.imported} added
+                  </span>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}

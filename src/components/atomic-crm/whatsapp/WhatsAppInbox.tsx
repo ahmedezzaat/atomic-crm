@@ -1,4 +1,4 @@
-import { MessageCircle } from "lucide-react";
+import { Handshake, MessageCircle } from "lucide-react";
 import { useCreate, useGetList, useGetMany, useNotify } from "ra-core";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
@@ -111,6 +111,38 @@ export const WhatsAppInbox = () => {
       }
     }
   }, [current, seen]);
+
+  const { data: openDeals = [], refetch: refetchDeals } = useGetList<{
+    id: number;
+  }>(
+    "deals",
+    {
+      pagination: { page: 1, perPage: 1 },
+      filter: { company_id: current?.company_id, "archived_at@is": null },
+    },
+    { enabled: !!current?.company_id },
+  );
+
+  const openDeal = async () => {
+    if (!current?.company_id) return;
+    setBusy(true);
+    const { data, error } = await getSupabaseClient().functions.invoke<{
+      deal_id: number;
+    }>("whatsapp_send", {
+      method: "POST",
+      body: { action: "open_deal", company_id: current.company_id },
+    });
+    if (error || !data) {
+      const detail = await (error as any)?.context?.json?.().catch(() => null);
+      notify(detail?.message ?? error?.message ?? "Request failed", {
+        type: "error",
+      });
+    } else {
+      notify("Deal opened in the first stage, with a follow-up task.");
+      refetchDeals();
+    }
+    setBusy(false);
+  };
 
   const windowOpen = current?.lastIn
     ? Date.now() - new Date(current.lastIn.created_at).getTime() < WINDOW_MS
@@ -248,11 +280,26 @@ export const WhatsAppInbox = () => {
                   </div>
                 </div>
                 {current.company_id ? (
-                  <Button asChild variant="outline" size="sm">
-                    <Link to={`/companies/${current.company_id}/show`}>
-                      Open company
-                    </Link>
-                  </Button>
+                  <div className="flex gap-2">
+                    {openDeals.length > 0 ? (
+                      <Button asChild variant="outline" size="sm">
+                        <Link to={`/deals/${openDeals[0].id}/show`}>
+                          <Handshake className="h-4 w-4" />
+                          Open deal
+                        </Link>
+                      </Button>
+                    ) : (
+                      <Button size="sm" disabled={busy} onClick={openDeal}>
+                        <Handshake className="h-4 w-4" />
+                        Interested → Open deal
+                      </Button>
+                    )}
+                    <Button asChild variant="outline" size="sm">
+                      <Link to={`/companies/${current.company_id}/show`}>
+                        Open company
+                      </Link>
+                    </Button>
+                  </div>
                 ) : (
                   <Badge variant="secondary">New number</Badge>
                 )}

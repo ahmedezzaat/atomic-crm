@@ -212,3 +212,7 @@ grant all on sequence public.wa_campaigns_id_seq to service_role;
 
 grant all on table public.wa_campaigns_summary to authenticated;
 grant all on table public.wa_campaigns_summary to service_role;
+
+grant select on table public.lead_searches to authenticated;
+grant all on table public.lead_searches to service_role;
+grant all on sequence public.lead_searches_id_seq to service_role;

@@ -467,3 +467,34 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+create or replace function public.run_wa_auto_campaigns() returns void
+    language plpgsql security definer set search_path = ''
+as $$
+declare
+    base_url text;
+    token text;
+    campaign record;
+begin
+    select value into base_url from public.integration_secrets where key = 'functions_url';
+    select value into token from public.integration_secrets where key = 'cron_token';
+    if base_url is null or token is null then
+        return;
+    end if;
+    for campaign in
+        select id from public.wa_campaigns
+        where auto_daily
+          and status <> 'done'
+          and template_name <> ''
+          and send_hour = extract(hour from (now() at time zone 'Africa/Cairo'))::int
+    loop
+        perform net.http_post(
+            url := base_url || '/wa_campaign_send',
+            body := jsonb_build_object('campaign_id', campaign.id, 'cron', true),
+            headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-token', token),
+            timeout_milliseconds := 5000
+        );
+    end loop;
+end;
+$$;
+revoke all on function public.run_wa_auto_campaigns() from public, anon, authenticated;

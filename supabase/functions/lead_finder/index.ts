@@ -8,7 +8,9 @@ import { normalizePhone } from "../_shared/whatsapp.ts";
 
 // "Find leads": search Google Maps (Places API, Text Search) for businesses and
 // import the ones the user ticks as companies. Prospects found this way have
-// not opted in, so no automatic WhatsApp is sent: staff get a task instead.
+// not opted in, so no automatic WhatsApp is sent. Imports create the company
+// only (no deal, no task): a deal is opened later, when the lead shows interest.
+// Each search is remembered (query, date, count) so nobody pays twice by accident.
 const PLACES_URL =
   Deno.env.get("GOOGLE_PLACES_URL") ??
   "https://places.googleapis.com/v1/places:searchText";
@@ -103,6 +105,15 @@ Deno.serve((req: Request) =>
           return json({ configured: !!key, hint: key ? key.slice(-4) : "" });
         }
 
+        if (body.action === "history") {
+          const { data: rows } = await supabaseAdmin
+            .from("lead_searches")
+            .select("id,created_at,query,results,imported")
+            .order("created_at", { ascending: false })
+            .limit(15);
+          return json({ searches: rows ?? [] });
+        }
+
         if (body.action === "save_key") {
           if (!sale.administrator) {
             return createErrorResponse(403, "Only administrators can do this");
@@ -181,7 +192,31 @@ Deno.serve((req: Request) =>
                   names.has(name.trim().toLowerCase()),
               };
             });
-          return json({ places, next_page_token: data.nextPageToken ?? null });
+          // Remember the search itself (never Google's data), once per query, not per page
+          let previous = null;
+          let searchId = null;
+          if (!body.page_token) {
+            const { data: last } = await supabaseAdmin
+              .from("lead_searches")
+              .select("created_at,results,imported")
+              .eq("query", query)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            previous = last;
+            const { data: saved } = await supabaseAdmin
+              .from("lead_searches")
+              .insert({ query, results: places.length, sales_id: sale.id })
+              .select("id")
+              .single();
+            searchId = saved?.id ?? null;
+          }
+          return json({
+            places,
+            next_page_token: data.nextPageToken ?? null,
+            previous,
+            search_id: searchId,
+          });
         }
 
         if (body.action === "import") {
@@ -192,16 +227,6 @@ Deno.serve((req: Request) =>
           const segment = str(body.segment, 80);
           await ensureLeadSource();
           const tagId = segment ? await ensureTag(segment) : null;
-
-          const { data: cfg } = await supabaseAdmin
-            .from("configuration")
-            .select("config")
-            .eq("id", 1)
-            .maybeSingle();
-          const stage =
-            (cfg?.config as any)?.dealStages?.[0]?.value ?? "opportunity";
-          const category =
-            (cfg?.config as any)?.dealCategories?.[0]?.value ?? "other";
 
           const { data: known } = await supabaseAdmin
             .from("companies")
@@ -262,32 +287,21 @@ Deno.serve((req: Request) =>
             if (phone) phones.add(normalizePhone(phone));
             names.add(name.toLowerCase());
 
-            const { data: last } = await supabaseAdmin
-              .from("deals")
-              .select("index")
-              .eq("stage", stage)
-              .order("index", { ascending: false })
-              .limit(1)
-              .maybeSingle();
-            await supabaseAdmin.from("deals").insert({
-              name,
-              company_id: company.id,
-              stage,
-              category,
-              amount: 0,
-              sales_id: sale.id,
-              index: (last?.index ?? -1) + 1,
-              contact_ids: [],
-            });
-            await supabaseAdmin.from("tasks").insert({
-              company_id: company.id,
-              sales_id: sale.id,
-              type: "none",
-              text: `Introduce Kords to ${name} (found on Google Maps)`,
-              due_date: new Date(Date.now() + 86400_000).toISOString(),
-            });
             created++;
             ids.push(company.id);
+          }
+          if (body.search_id && created > 0) {
+            const { data: row } = await supabaseAdmin
+              .from("lead_searches")
+              .select("imported")
+              .eq("id", Number(body.search_id))
+              .maybeSingle();
+            if (row) {
+              await supabaseAdmin
+                .from("lead_searches")
+                .update({ imported: row.imported + created })
+                .eq("id", Number(body.search_id));
+            }
           }
           return json({ created, skipped, ids });
         }
