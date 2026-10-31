@@ -185,6 +185,8 @@ export const LeadSettingsCard = () => {
 
       let session: { phone_number_id?: string; waba_id?: string } | undefined;
       let cancelled = false;
+      // what Meta reports, shown if the connection does not finish
+      const seen: string[] = [];
       const onMessage = (event: MessageEvent) => {
         let origin = "";
         try {
@@ -199,17 +201,27 @@ export const LeadSettingsCard = () => {
               ? JSON.parse(event.data)
               : event.data;
           if (data?.type !== "WA_EMBEDDED_SIGNUP") return;
-          if (String(data.event).startsWith("FINISH")) session = data.data;
-          else if (data.event === "CANCEL") cancelled = true;
+          seen.push(String(data.event));
+          if (data.event === "CANCEL") {
+            cancelled = true;
+            const where = data.data?.current_step ?? data.data?.error_message;
+            if (where) seen.push(`stopped at: ${where}`);
+          } else if (String(data.event).startsWith("FINISH")) {
+            session = data.data;
+          }
         } catch {
           // not a message about the sign-up
         }
       };
       window.addEventListener("message", onMessage);
       try {
+        let loginStatus = "no response";
         const code = await new Promise<string | undefined>((resolve) => {
           window.FB.login(
-            (response: any) => resolve(response?.authResponse?.code),
+            (response: any) => {
+              loginStatus = String(response?.status ?? "no status");
+              resolve(response?.authResponse?.code);
+            },
             {
               config_id: ids.config_id.trim(),
               response_type: "code",
@@ -227,7 +239,9 @@ export const LeadSettingsCard = () => {
           await new Promise((r) => setTimeout(r, 250));
         }
         if (!code || cancelled || !session) {
-          throw new Error("The connection was cancelled before it finished");
+          throw new Error(
+            `Meta did not finish the connection. Login: ${loginStatus}; code received: ${code ? "yes" : "no"}; Meta events: ${seen.join(", ") || "none"}. Send this line to support.`,
+          );
         }
         const result = await call({
           action: "connect_coexistence",
