@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { getSupabaseClient } from "../providers/supabase/supabase";
+import { secretFieldProps } from "../misc/secretField";
 
 type Hint = { set: boolean; hint: string };
 type Status = {
@@ -107,8 +108,7 @@ export const CallSettingsCard = () => {
                 <Label htmlFor={`call-${key}`}>{label}</Label>
                 <Input
                   id={`call-${key}`}
-                  type="password"
-                  autoComplete="off"
+                  {...secretFieldProps}
                   value={values[key]}
                   onChange={(e) =>
                     setValues((v) => ({ ...v, [key]: e.target.value }))

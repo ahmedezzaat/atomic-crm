@@ -17,6 +17,7 @@ import {
 
 import { enrichCompanies } from "../companies/enrich";
 import { getSupabaseClient } from "../providers/supabase/supabase";
+import { secretFieldProps } from "../misc/secretField";
 
 type Place = {
   place_id: string;
@@ -267,8 +268,7 @@ export const FindLeads = () => {
             </p>
             <div className="flex max-w-xl gap-2">
               <Input
-                type="password"
-                autoComplete="off"
+                {...secretFieldProps}
                 dir="ltr"
                 value={newKey}
                 onChange={(e) => setNewKey(e.target.value)}

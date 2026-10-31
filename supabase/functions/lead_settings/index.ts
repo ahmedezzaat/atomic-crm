@@ -104,6 +104,18 @@ Deno.serve(async (req: Request) =>
         const body = await req.json().catch(() => ({}));
         let newLeadKey: string | undefined;
         if (body.action === "save") {
+          // Meta access tokens start with "EA" and are very long. Anything else is
+          // a mistake, usually the browser filling in a saved password.
+          const typed =
+            typeof body.access_token === "string"
+              ? body.access_token.trim()
+              : "";
+          if (typed && !/^EA[A-Za-z0-9_-]{40,}$/.test(typed)) {
+            return createErrorResponse(
+              400,
+              "That does not look like a Meta access token (they start with EA and are very long). Your browser may have filled in a saved password. Nothing was saved.",
+            );
+          }
           for (const [field, key] of Object.entries(SECRET_FIELDS)) {
             const value = body[field];
             if (typeof value === "string" && value.trim() !== "") {

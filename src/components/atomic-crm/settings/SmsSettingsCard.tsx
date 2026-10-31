@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { getSupabaseClient } from "../providers/supabase/supabase";
+import { secretFieldProps } from "../misc/secretField";
 
 type Hint = { set: boolean; hint: string };
 type Status = { token: Hint; api_key: Hint; username: Hint };
@@ -110,8 +111,7 @@ export const SmsSettingsCard = () => {
                 <Label htmlFor={`sms-${key}`}>{label}</Label>
                 <Input
                   id={`sms-${key}`}
-                  type="password"
-                  autoComplete="off"
+                  {...secretFieldProps}
                   value={values[key]}
                   onChange={(e) =>
                     setValues((v) => ({ ...v, [key]: e.target.value }))

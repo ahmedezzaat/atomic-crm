@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { getSupabaseClient } from "../providers/supabase/supabase";
+import { secretFieldProps } from "../misc/secretField";
 
 type Hint = { set: boolean; hint: string };
 type Status = {
@@ -400,8 +401,7 @@ export const LeadSettingsCard = () => {
               <Label htmlFor="wa-coex-secret">App secret</Label>
               <Input
                 id="wa-coex-secret"
-                type="password"
-                autoComplete="off"
+                {...secretFieldProps}
                 value={secrets.app_secret}
                 onChange={(e) =>
                   setSecrets((v) => ({ ...v, app_secret: e.target.value }))
@@ -450,8 +450,7 @@ export const LeadSettingsCard = () => {
                 <Label htmlFor={`wa-${key}`}>{label}</Label>
                 <Input
                   id={`wa-${key}`}
-                  type="password"
-                  autoComplete="off"
+                  {...secretFieldProps}
                   value={secrets[key]}
                   onChange={(e) =>
                     setSecrets((v) => ({ ...v, [key]: e.target.value }))
