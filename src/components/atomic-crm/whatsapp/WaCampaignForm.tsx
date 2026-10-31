@@ -43,7 +43,8 @@ type Draft = {
   daily_cap: number;
   auto_daily: boolean;
   send_hour: number;
-  audience: Required<WaAudience>;
+  audience: Required<Omit<WaAudience, "new_only">>;
+  new_only: boolean;
 };
 
 const emptyDraft = (): Draft => ({
@@ -54,6 +55,7 @@ const emptyDraft = (): Draft => ({
   daily_cap: 50,
   auto_daily: false,
   send_hour: 10,
+  new_only: false,
   audience: {
     lead_source: ANY,
     tag: ANY,
@@ -114,14 +116,18 @@ export const WaCampaignForm = () => {
       auto_daily: saved.auto_daily,
       send_hour: saved.send_hour,
       audience: { ...emptyDraft().audience, ...saved.audience },
+      new_only: saved.audience?.new_only === true,
     });
     // load once per campaign id, not on every refetch
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saved?.id]);
 
-  const audience = Object.fromEntries(
-    Object.entries(draft.audience).filter(([, v]) => v !== ANY),
-  );
+  const audience = {
+    ...Object.fromEntries(
+      Object.entries(draft.audience).filter(([, v]) => v !== ANY),
+    ),
+    ...(draft.new_only ? { new_only: true } : {}),
+  };
   const audienceKey = JSON.stringify(audience);
 
   const loadPreview = () =>
@@ -373,6 +379,14 @@ export const WaCampaignForm = () => {
                 )}
                 {pick("Competitor system", "competitor", companyCompetitors)}
               </div>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={draft.new_only}
+                  onChange={(e) => set("new_only", e.target.checked)}
+                />
+                Only companies with no deal and not a customer
+              </label>
               <p className="text-xs text-muted-foreground">
                 Never included: companies that replied STOP, companies without a
                 valid phone number, and numbers that already got a WhatsApp

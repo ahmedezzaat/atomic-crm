@@ -30,6 +30,9 @@ type Audience = {
   city?: string;
   country?: string;
   competitor?: string;
+  // only companies with no deal (open, won, lost or archived), no subscription
+  // and not flagged as a customer
+  new_only?: boolean;
 };
 
 const json = (body: unknown, status = 200) =>
@@ -41,7 +44,7 @@ const json = (body: unknown, status = 200) =>
 async function eligible(audience: Audience) {
   let query = supabaseAdmin
     .from("companies")
-    .select("id,name,phone_number")
+    .select("id,name,phone_number,is_customer")
     .not("phone_number", "is", null)
     .eq("whatsapp_opted_out", false)
     .order("id");
@@ -61,8 +64,20 @@ async function eligible(audience: Audience) {
     .limit(100000);
   const already = new Set((sent ?? []).map((m) => m.phone));
 
+  // companies that already have a deal or a subscription are not "new"
+  const busy = new Set<number>();
+  if (audience.new_only) {
+    const [{ data: deals }, { data: subs }] = await Promise.all([
+      supabaseAdmin.from("deals").select("company_id").limit(100000),
+      supabaseAdmin.from("subscriptions").select("company_id").limit(100000),
+    ]);
+    for (const d of deals ?? []) busy.add(d.company_id);
+    for (const sub of subs ?? []) busy.add(sub.company_id);
+  }
+
   const seen = new Set<string>();
   return (data ?? []).flatMap((c) => {
+    if (audience.new_only && (c.is_customer || busy.has(c.id))) return [];
     const phone = normalizePhone(c.phone_number);
     if (!phone || already.has(phone) || seen.has(phone)) return [];
     seen.add(phone);

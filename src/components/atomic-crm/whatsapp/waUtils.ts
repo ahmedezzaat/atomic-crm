@@ -6,6 +6,7 @@ export type WaAudience = {
   city?: string;
   country?: string;
   competitor?: string;
+  new_only?: boolean;
 };
 
 export type WaCampaign = {
