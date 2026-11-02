@@ -228,6 +228,11 @@ export const LeadSettingsCard = () => {
             cancelled = true;
             const where = data.data?.current_step ?? data.data?.error_message;
             if (where) seen.push(`stopped at: ${where}`);
+          } else if (data.event === "ERROR") {
+            cancelled = true;
+            seen.push(
+              `Meta error ${data.data?.error_code ?? ""}: ${data.data?.error_message ?? "unknown"}`,
+            );
           } else if (String(data.event).startsWith("FINISH")) {
             session = data.data;
           }
@@ -248,11 +253,9 @@ export const LeadSettingsCard = () => {
               config_id: ids.config_id.trim(),
               response_type: "code",
               override_default_response_type: true,
-              extras: {
-                setup: {},
-                featureType: "whatsapp_business_app_onboarding",
-                sessionInfoVersion: "3",
-              },
+              // v5 turns WhatsApp Business app onboarding on by default; the
+              // products come from the Facebook Login for Business configuration
+              extras: { version: "v5" },
             },
           );
         });
