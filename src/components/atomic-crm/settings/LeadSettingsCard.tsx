@@ -594,7 +594,7 @@ export const LeadSettingsCard = () => {
                     {p}
                   </p>
                 ))}
-                {report.accounts && report.accounts.length > 0 && (
+                {report.accounts?.some((a) => a.numbers.length > 0) && (
                   <div>
                     <p className="font-medium">
                       Numbers this token can use (choose the right one)

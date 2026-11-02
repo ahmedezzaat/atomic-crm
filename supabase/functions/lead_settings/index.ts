@@ -104,6 +104,7 @@ async function listAccounts(
     waba_id: string;
     name: string;
     numbers: { id: string; display: string; name: string; status: string }[];
+    error?: string;
   }[] = [];
   for (const wabaId of wabaIds) {
     const info = await fetch(`${API_BASE}/${wabaId}?fields=name`, auth)
@@ -118,6 +119,7 @@ async function listAccounts(
     accounts.push({
       waba_id: wabaId,
       name: String(info?.name ?? ""),
+      error: list?.error?.message ?? info?.error?.message,
       numbers: (list?.data ?? []).map((n: any) => ({
         id: String(n.id),
         display: String(n.display_phone_number ?? ""),
@@ -369,6 +371,16 @@ Deno.serve(async (req: Request) =>
                 "This token was not granted any WhatsApp account. When you generate it, pick your WhatsApp account on Meta's permission screen (or assign it to the System User).",
               );
             }
+          }
+          // an account with no usable number must say why, not show an empty list
+          for (const account of accounts) {
+            if (account.numbers.length > 0) continue;
+            const label = `WhatsApp account ${account.name || "(no name)"} ending ${account.waba_id.slice(-4)}`;
+            problems.push(
+              account.error
+                ? `${label}: Meta says: ${account.error}`
+                : `${label} has no phone number on it.`,
+            );
           }
           check = { number, templates, problems, waba_id: wabaId, accounts };
         }
