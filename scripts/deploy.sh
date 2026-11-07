@@ -9,11 +9,11 @@ SERVER="root@13.140.152.7"
 SITE_DIR="/var/www/kords-crm"
 
 echo "1/4  Database changes (type y if it asks)"
-npx supabase db push --linked
+npx -y supabase@2 db push --linked
 
 if [[ "${1:-}" == "--functions" ]]; then
   echo "     Server functions"
-  npx supabase functions deploy
+  npx -y supabase@2 functions deploy
 fi
 
 echo "2/4  Building the website"
