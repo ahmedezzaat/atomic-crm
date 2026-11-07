@@ -20,6 +20,8 @@ import {
 //  - never twice to the same number (any earlier WhatsApp message counts)
 //  - at most daily_cap messages per rolling 24 hours across all campaigns
 //  - only inside the campaign's sending window (Cairo time)
+//  - follow-ups only to people who got the earlier message, did not reply,
+//    did not opt out and have no open deal
 // Automatic campaigns are triggered every hour of their window by pg_cron
 // (run_wa_auto_campaigns), which calls this function with the x-cron-token
 // header; each call sends that hour's share of what is left for the day.
@@ -99,11 +101,17 @@ async function sentLast24h() {
   return count ?? 0;
 }
 
-type Campaign = {
-  id: number;
+type Template = {
   template_name: string;
   template_language: string;
   with_name: boolean;
+};
+
+type Followup = Template & { after_hours: number };
+
+type Campaign = Template & {
+  id: number;
+  followups: Followup[] | null;
   audience: Audience | null;
   daily_cap: number;
   send_from_hour: number;
@@ -125,8 +133,120 @@ const hourLabel = (h: number) => `${String(h).padStart(2, "0")}:00`;
 const inWindow = (campaign: Campaign, hour = cairoHour()) =>
   hour >= campaign.send_from_hour && hour < campaign.send_to_hour;
 
+const chunks = <T>(items: T[], size = 300) =>
+  Array.from({ length: Math.ceil(items.length / size) }, (_, i) =>
+    items.slice(i * size, i * size + size),
+  );
+
+type Target = {
+  id: number;
+  name: string;
+  phone: string;
+  step: number;
+  template: Template;
+};
+
+/**
+ * Who should get a follow-up now (due) and how many may need one later (waiting).
+ * A person gets follow-up N when follow-up N-1 (or the campaign message) was
+ * delivered at least after_hours ago and they have not replied since the
+ * campaign message, not opted out and have no open deal.
+ */
+async function followupState(campaign: Campaign) {
+  const steps = (campaign.followups ?? []).filter((f) => f.template_name);
+  const due: Target[] = [];
+  let waiting = 0;
+  if (steps.length === 0) return { due, waiting };
+
+  const { data: rows } = await supabaseAdmin
+    .from("whatsapp_messages")
+    .select("phone,company_id,created_at,status,followup_step")
+    .eq("campaign_id", campaign.id)
+    .eq("direction", "out")
+    .neq("status", "failed")
+    .limit(100000);
+  type Row = NonNullable<typeof rows>[number];
+  const byPhone = new Map<string, { first: Row; last: Row }>();
+  for (const row of rows ?? []) {
+    const entry = byPhone.get(row.phone);
+    if (!entry) byPhone.set(row.phone, { first: row, last: row });
+    else {
+      if (row.followup_step < entry.first.followup_step) entry.first = row;
+      if (row.followup_step > entry.last.followup_step) entry.last = row;
+    }
+  }
+  const open = [...byPhone.entries()].filter(
+    ([, e]) => e.last.followup_step < steps.length,
+  );
+  if (open.length === 0) return { due, waiting };
+
+  const replied = new Set<string>();
+  const companies = new Map<number, { name: string; opted_out: boolean }>();
+  const busy = new Set<number>();
+  const companyIds = [
+    ...new Set(open.map(([, e]) => e.first.company_id).filter(Boolean)),
+  ] as number[];
+  for (const part of chunks(open)) {
+    const { data } = await supabaseAdmin
+      .from("whatsapp_messages")
+      .select("phone,created_at")
+      .eq("direction", "in")
+      .in(
+        "phone",
+        part.map(([phone]) => phone),
+      );
+    for (const m of data ?? []) {
+      if (m.created_at > byPhone.get(m.phone)!.first.created_at)
+        replied.add(m.phone);
+    }
+  }
+  for (const part of chunks(companyIds)) {
+    const [{ data: cs }, { data: deals }] = await Promise.all([
+      supabaseAdmin
+        .from("companies")
+        .select("id,name,whatsapp_opted_out")
+        .in("id", part),
+      supabaseAdmin
+        .from("deals")
+        .select("company_id")
+        .is("archived_at", null)
+        .in("company_id", part),
+    ]);
+    for (const c of cs ?? [])
+      companies.set(c.id, { name: c.name, opted_out: c.whatsapp_opted_out });
+    for (const d of deals ?? []) busy.add(d.company_id);
+  }
+
+  const now = Date.now();
+  for (const [phone, { first, last }] of open) {
+    const company = companies.get(first.company_id);
+    if (!company || company.opted_out || busy.has(first.company_id)) continue;
+    if (replied.has(phone)) continue;
+    const step = steps[last.followup_step];
+    const age = now - new Date(last.created_at).getTime();
+    if (last.status === "sent") {
+      // not delivered (yet): wait for the delivery report, give up after a week
+      if (age < 7 * 24 * 3600_000) waiting++;
+      continue;
+    }
+    if (age < step.after_hours * 3600_000) {
+      waiting++;
+      continue;
+    }
+    due.push({
+      id: first.company_id,
+      name: company.name,
+      phone,
+      step: last.followup_step + 1,
+      template: step,
+    });
+  }
+  return { due, waiting };
+}
+
 /**
  * Sends the next batch of a campaign and reports what happened.
+ * Follow-ups that are due go first, then companies not messaged yet.
  * With spread, sends only this hour's share of the room left for the day,
  * so an automatic campaign is spread evenly over its window.
  */
@@ -155,13 +275,32 @@ async function runBatch(
       message: "Daily limit reached. Try again later today or tomorrow.",
     };
   }
-  const batch = all.slice(0, Math.min(room, MAX_BATCH));
+  room = Math.min(room, MAX_BATCH);
+  const followups = await followupState(campaign);
+  const main: Template = campaign;
+  const batch: Target[] = [
+    ...followups.due.slice(0, room),
+    ...all
+      .slice(0, Math.max(0, room - followups.due.length))
+      .map((t) => ({ ...t, step: 0, template: main })),
+  ];
+  const stepsCount = (campaign.followups ?? []).filter(
+    (f) => f.template_name,
+  ).length;
   if (batch.length === 0) {
-    await supabaseAdmin
-      .from("wa_campaigns")
-      .update({ status: "done" })
-      .eq("id", campaign.id);
-    return { sent: 0, failed: 0, remaining: 0, message: "Done" };
+    if (all.length === 0 && followups.waiting === 0) {
+      await supabaseAdmin
+        .from("wa_campaigns")
+        .update({ status: "done" })
+        .eq("id", campaign.id);
+      return { sent: 0, failed: 0, remaining: 0, message: "Done" };
+    }
+    return {
+      sent: 0,
+      failed: 0,
+      remaining: all.length,
+      message: `Nothing to send now. ${followups.waiting} waiting for a follow-up.`,
+    };
   }
 
   // Log first so a double click cannot message the same number twice
@@ -172,10 +311,11 @@ async function runBatch(
         company_id: t.id,
         phone: t.phone,
         direction: "out",
-        body: `[template: ${campaign.template_name}]`,
-        template_name: campaign.template_name,
+        body: `[template: ${t.template.template_name}]`,
+        template_name: t.template.template_name,
         status: "queued",
         campaign_id: campaign.id,
+        followup_step: t.step,
         sales_id: salesId,
       })),
     )
@@ -186,19 +326,19 @@ async function runBatch(
     .update({ status: "active", error: null })
     .eq("id", campaign.id);
 
-  const nameByPhone = new Map(batch.map((t) => [t.phone, t.name]));
+  // one message per phone in a batch
+  const targetByPhone = new Map(batch.map((t) => [t.phone, t]));
   const queue = [...(rows ?? [])];
   let sent = 0;
   let failed = 0;
   let firstError: string | undefined;
   const worker = async () => {
     for (let row = queue.shift(); row; row = queue.shift()) {
+      const target = targetByPhone.get(row.phone)!;
       const result = await sendTemplate(row.phone, {
-        name: campaign.template_name,
-        language: campaign.template_language,
-        bodyParams: campaign.with_name
-          ? [nameByPhone.get(row.phone) ?? ""]
-          : [],
+        name: target.template.template_name,
+        language: target.template.template_language,
+        bodyParams: target.template.with_name ? [target.name] : [],
       });
       if (result.id) sent++;
       else {
@@ -217,8 +357,13 @@ async function runBatch(
   };
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
-  const remaining = all.length - batch.length;
-  if (remaining === 0 && sent > 0) {
+  const newSent = batch.filter((t) => t.step === 0).length;
+  const remaining = all.length - newSent;
+  const moreFollowups =
+    followups.waiting > 0 ||
+    followups.due.length > batch.length - newSent ||
+    batch.some((t) => t.step < stepsCount);
+  if (remaining === 0 && sent > 0 && !moreFollowups) {
     await supabaseAdmin
       .from("wa_campaigns")
       .update({ status: "done" })
@@ -273,7 +418,18 @@ Deno.serve((req: Request) =>
 
         if (body.action === "preview") {
           const list = await eligible((body.audience ?? {}) as Audience);
-          return json({ eligible: list.length, sent_24h: await sentLast24h() });
+          const saved = body.campaign_id
+            ? await loadCampaign(Number(body.campaign_id))
+            : null;
+          const followups = saved
+            ? await followupState(saved)
+            : { due: [], waiting: 0 };
+          return json({
+            eligible: list.length,
+            sent_24h: await sentLast24h(),
+            followups_due: followups.due.length,
+            followups_waiting: followups.waiting,
+          });
         }
 
         if (body.action === "arm") {

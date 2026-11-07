@@ -321,6 +321,7 @@ create table public.whatsapp_messages (
     error text,
     sales_id bigint,
     campaign_id bigint,
+    followup_step smallint not null default 0,
     constraint whatsapp_messages_direction_check check (direction in ('in', 'out')),
     constraint whatsapp_messages_status_check check (status in ('queued', 'sent', 'delivered', 'read', 'failed', 'received'))
 );
@@ -333,6 +334,8 @@ alter table public.whatsapp_messages
 
 create index whatsapp_messages_company_id_idx on public.whatsapp_messages (company_id);
 create index whatsapp_messages_phone_idx on public.whatsapp_messages (phone);
+create index whatsapp_messages_campaign_step_idx on public.whatsapp_messages (campaign_id, followup_step)
+    where campaign_id is not null;
 create unique index whatsapp_messages_wa_message_id_idx on public.whatsapp_messages (wa_message_id) where wa_message_id is not null;
 
 create table public.wa_campaigns (
@@ -347,13 +350,16 @@ create table public.wa_campaigns (
     auto_daily boolean not null default false,
     send_from_hour smallint not null default 11,
     send_to_hour smallint not null default 20,
+    followups jsonb not null default '[]'::jsonb,
     status text not null default 'draft',
     error text,
     sales_id bigint,
     constraint wa_campaigns_status_check check (status in ('draft', 'active', 'done')),
     constraint wa_campaigns_daily_cap_check check (daily_cap between 1 and 1000),
     constraint wa_campaigns_send_window_check
-        check (send_from_hour between 0 and 23 and send_to_hour between 1 and 24 and send_from_hour < send_to_hour)
+        check (send_from_hour between 0 and 23 and send_to_hour between 1 and 24 and send_from_hour < send_to_hour),
+    constraint wa_campaigns_followups_check
+        check (jsonb_typeof(followups) = 'array' and jsonb_array_length(followups) <= 2)
 );
 
 

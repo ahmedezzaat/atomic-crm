@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import {
   useCreate,
   useGetList,
@@ -31,7 +31,12 @@ import {
 
 import { getSupabaseClient } from "../providers/supabase/supabase";
 import { useConfigurationContext } from "../root/ConfigurationContext";
-import { waStatusLabel, type WaAudience, type WaCampaign } from "./waUtils";
+import {
+  waStatusLabel,
+  type WaAudience,
+  type WaCampaign,
+  type WaFollowup,
+} from "./waUtils";
 
 const ANY = "__all";
 
@@ -44,6 +49,7 @@ type Draft = {
   auto_daily: boolean;
   send_from_hour: number;
   send_to_hour: number;
+  followups: WaFollowup[];
   audience: Required<Omit<WaAudience, "new_only">>;
   new_only: boolean;
 };
@@ -57,6 +63,7 @@ const emptyDraft = (): Draft => ({
   auto_daily: false,
   send_from_hour: 11,
   send_to_hour: 20,
+  followups: [],
   new_only: false,
   audience: {
     lead_source: ANY,
@@ -111,6 +118,8 @@ export const WaCampaignForm = () => {
   const [busy, setBusy] = useState(false);
   const [eligible, setEligible] = useState<number>();
   const [sent24h, setSent24h] = useState(0);
+  const [followupsDue, setFollowupsDue] = useState(0);
+  const [followupsWaiting, setFollowupsWaiting] = useState(0);
 
   const { data: saved, refetch } = useGetOne<WaCampaign>(
     "wa_campaigns",
@@ -129,6 +138,7 @@ export const WaCampaignForm = () => {
       auto_daily: saved.auto_daily,
       send_from_hour: saved.send_from_hour,
       send_to_hour: saved.send_to_hour,
+      followups: saved.followups ?? [],
       audience: { ...emptyDraft().audience, ...saved.audience },
       new_only: saved.audience?.new_only === true,
     });
@@ -145,13 +155,21 @@ export const WaCampaignForm = () => {
   const audienceKey = JSON.stringify(audience);
 
   const loadPreview = () =>
-    invoke<{ eligible: number; sent_24h: number }>({
+    invoke<{
+      eligible: number;
+      sent_24h: number;
+      followups_due: number;
+      followups_waiting: number;
+    }>({
       action: "preview",
       audience: JSON.parse(audienceKey),
+      campaign_id: id ? Number(id) : undefined,
     })
       .then((r) => {
         setEligible(r.eligible);
         setSent24h(r.sent_24h);
+        setFollowupsDue(r.followups_due);
+        setFollowupsWaiting(r.followups_waiting);
       })
       .catch(() => setEligible(undefined));
 
@@ -164,6 +182,31 @@ export const WaCampaignForm = () => {
 
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
+  const setFollowup = (index: number, patch: Partial<WaFollowup>) =>
+    setDraft((d) => ({
+      ...d,
+      followups: d.followups.map((f, i) =>
+        i === index ? { ...f, ...patch } : f,
+      ),
+    }));
+  const addFollowup = () =>
+    setDraft((d) => ({
+      ...d,
+      followups: [
+        ...d.followups,
+        {
+          after_hours: d.followups.length ? 72 : 48,
+          template_name: "",
+          template_language: d.template_language || "ar",
+          with_name: d.with_name,
+        },
+      ],
+    }));
+  const removeFollowup = (index: number) =>
+    setDraft((d) => ({
+      ...d,
+      followups: d.followups.filter((_, i) => i !== index),
+    }));
   const setAudience = (key: keyof Draft["audience"], value: string) =>
     setDraft((d) => ({ ...d, audience: { ...d.audience, [key]: value } }));
 
@@ -172,9 +215,12 @@ export const WaCampaignForm = () => {
     draft.template_name.trim() !== "" &&
     draft.daily_cap >= 1 &&
     draft.send_from_hour < draft.send_to_hour &&
-    (eligible ?? 0) > 0;
+    draft.followups.every(
+      (f) => f.template_name.trim() !== "" && f.after_hours >= 1,
+    ) &&
+    (eligible ?? 0) + followupsDue > 0;
   const room = Math.max(0, draft.daily_cap - sent24h);
-  const batchSize = Math.min(room, eligible ?? 0);
+  const batchSize = Math.min(room, (eligible ?? 0) + followupsDue);
   const hourNow = cairoHour();
   const windowOpen =
     hourNow >= draft.send_from_hour && hourNow < draft.send_to_hour;
@@ -189,6 +235,11 @@ export const WaCampaignForm = () => {
       auto_daily: draft.auto_daily,
       send_from_hour: draft.send_from_hour,
       send_to_hour: draft.send_to_hour,
+      followups: draft.followups.map((f) => ({
+        ...f,
+        template_name: f.template_name.trim(),
+        template_language: f.template_language.trim() || "ar",
+      })),
       audience,
     };
     if (draft.auto_daily) await invoke({ action: "arm" });
@@ -414,6 +465,107 @@ export const WaCampaignForm = () => {
             </CardContent>
           </Card>
 
+          <Card>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Follow-ups</h2>
+                {draft.followups.length < 2 && (
+                  <Button variant="outline" size="sm" onClick={addFollowup}>
+                    <Plus className="h-4 w-4" />
+                    Add follow-up
+                  </Button>
+                )}
+              </div>
+              {draft.followups.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  No follow-ups. People who don't reply get only the first
+                  message.
+                </p>
+              )}
+              {draft.followups.map((f, i) => (
+                <div
+                  key={i}
+                  className="flex flex-col gap-3 rounded-md border p-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">Follow-up {i + 1}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Remove follow-up ${i + 1}`}
+                      onClick={() => removeFollowup(i)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <span>If no reply</span>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={720}
+                      className="w-20"
+                      aria-label={`Follow-up ${i + 1} hours`}
+                      value={f.after_hours}
+                      onChange={(e) =>
+                        setFollowup(i, { after_hours: Number(e.target.value) })
+                      }
+                    />
+                    <span>
+                      hours after{" "}
+                      {i === 0 ? "the first message" : "follow-up 1"}, send:
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor={`wa-fu-tpl-${i}`}>
+                        Approved template name
+                      </Label>
+                      <Input
+                        id={`wa-fu-tpl-${i}`}
+                        dir="ltr"
+                        value={f.template_name}
+                        onChange={(e) =>
+                          setFollowup(i, { template_name: e.target.value })
+                        }
+                        placeholder="kords_followup_1"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor={`wa-fu-lang-${i}`}>Language code</Label>
+                      <Input
+                        id={`wa-fu-lang-${i}`}
+                        dir="ltr"
+                        value={f.template_language}
+                        onChange={(e) =>
+                          setFollowup(i, { template_language: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={f.with_name}
+                      onChange={(e) =>
+                        setFollowup(i, { with_name: e.target.checked })
+                      }
+                    />
+                    The template has {"{{1}}"} for the company name
+                  </label>
+                </div>
+              ))}
+              <p className="text-xs text-muted-foreground">
+                A follow-up goes only to people whose earlier message was
+                delivered and who have not replied, tapped stop or got a deal.
+                It needs the WhatsApp webhook (Settings) to see deliveries and
+                replies. Follow-ups count towards the daily limit and go before
+                new companies, during the sending hours. Turn on automatic
+                sending so they go out without clicking.
+              </p>
+            </CardContent>
+          </Card>
+
           {saved && (
             <Card>
               <CardContent className="flex flex-col gap-3">
@@ -425,6 +577,15 @@ export const WaCampaignForm = () => {
                   {stat("Replied", saved.nb_replied)}
                   {stat("Failed", saved.nb_failed)}
                 </div>
+                {saved.followups?.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2 text-center text-sm">
+                    {stat("Follow-ups sent", saved.nb_followups)}
+                    {stat(
+                      "Replied after a follow-up",
+                      saved.nb_replied_after_followup,
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
@@ -505,6 +666,22 @@ export const WaCampaignForm = () => {
                 <span className="text-muted-foreground">Sent in last 24h</span>
                 <span>{sent24h}</span>
               </div>
+              {draft.followups.length > 0 && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Follow-ups due now
+                    </span>
+                    <span>{followupsDue}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Waiting for a follow-up
+                    </span>
+                    <span>{followupsWaiting}</span>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between font-medium">
                 <span>Next batch</span>
                 <span>{batchSize}</span>
@@ -548,9 +725,11 @@ export const WaCampaignForm = () => {
           <DialogHeader>
             <DialogTitle>Send this batch?</DialogTitle>
             <DialogDescription>
-              {batchSize} companies will receive the template "
-              {draft.template_name}" on WhatsApp now. Each message is billed by
-              Meta and can't be recalled.
+              {batchSize} companies will receive a WhatsApp template now
+              {followupsDue > 0
+                ? ` (${Math.min(followupsDue, batchSize)} of them a follow-up)`
+                : ` ("${draft.template_name}")`}
+              . Each message is billed by Meta and can't be recalled.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

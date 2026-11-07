@@ -172,19 +172,25 @@ from public.sms_campaigns c
     left join public.sms_messages m on m.campaign_id = c.id
 group by c.id;
 
--- Campaign progress, derived from the messages sent for it.
+-- Campaign progress, derived from the messages sent for it. Sent/delivered/read/replied
+-- count the campaign message only; follow-ups have their own counts.
 create or replace view public.wa_campaigns_summary with (security_invoker = on) as
 select
     c.*,
-    count(m.id) as nb_messages,
-    count(m.id) filter (where m.status in ('sent', 'delivered', 'read')) as nb_sent,
-    count(m.id) filter (where m.status in ('delivered', 'read')) as nb_delivered,
-    count(m.id) filter (where m.status = 'read') as nb_read,
+    count(m.id) filter (where m.followup_step = 0) as nb_messages,
+    count(m.id) filter (where m.followup_step = 0 and m.status in ('sent', 'delivered', 'read')) as nb_sent,
+    count(m.id) filter (where m.followup_step = 0 and m.status in ('delivered', 'read')) as nb_delivered,
+    count(m.id) filter (where m.followup_step = 0 and m.status = 'read') as nb_read,
     count(m.id) filter (where m.status = 'failed') as nb_failed,
-    count(distinct m.phone) filter (where exists (
+    count(distinct m.phone) filter (where m.followup_step = 0 and exists (
         select 1 from public.whatsapp_messages r
         where r.phone = m.phone and r.direction = 'in' and r.created_at > m.created_at
-    )) as nb_replied
+    )) as nb_replied,
+    count(m.id) filter (where m.followup_step > 0 and m.status in ('sent', 'delivered', 'read')) as nb_followups,
+    count(distinct m.phone) filter (where m.followup_step > 0 and exists (
+        select 1 from public.whatsapp_messages r
+        where r.phone = m.phone and r.direction = 'in' and r.created_at > m.created_at
+    )) as nb_replied_after_followup
 from public.wa_campaigns c
     left join public.whatsapp_messages m on m.campaign_id = c.id and m.direction = 'out'
 group by c.id;

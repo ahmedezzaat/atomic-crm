@@ -9,6 +9,13 @@ export type WaAudience = {
   new_only?: boolean;
 };
 
+export type WaFollowup = {
+  after_hours: number;
+  template_name: string;
+  template_language: string;
+  with_name: boolean;
+};
+
 export type WaCampaign = {
   id: number;
   name: string;
@@ -20,6 +27,7 @@ export type WaCampaign = {
   auto_daily: boolean;
   send_from_hour: number;
   send_to_hour: number;
+  followups: WaFollowup[];
   status: WaStatus;
   error: string | null;
   nb_messages?: number;
@@ -28,6 +36,8 @@ export type WaCampaign = {
   nb_read?: number;
   nb_replied?: number;
   nb_failed?: number;
+  nb_followups?: number;
+  nb_replied_after_followup?: number;
 };
 
 export const waStatusLabel: Record<WaStatus, string> = {
