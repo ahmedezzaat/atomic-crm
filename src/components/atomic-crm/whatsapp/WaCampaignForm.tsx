@@ -42,7 +42,8 @@ type Draft = {
   with_name: boolean;
   daily_cap: number;
   auto_daily: boolean;
-  send_hour: number;
+  send_from_hour: number;
+  send_to_hour: number;
   audience: Required<Omit<WaAudience, "new_only">>;
   new_only: boolean;
 };
@@ -54,7 +55,8 @@ const emptyDraft = (): Draft => ({
   with_name: true,
   daily_cap: 50,
   auto_daily: false,
-  send_hour: 10,
+  send_from_hour: 11,
+  send_to_hour: 20,
   new_only: false,
   audience: {
     lead_source: ANY,
@@ -64,6 +66,17 @@ const emptyDraft = (): Draft => ({
     competitor: ANY,
   },
 });
+
+const hourLabel = (h: number) => `${String(h).padStart(2, "0")}:00`;
+
+const cairoHour = () =>
+  Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Africa/Cairo",
+      hour: "numeric",
+      hourCycle: "h23",
+    }).format(new Date()),
+  );
 
 const invoke = async <T,>(body: Record<string, unknown>) => {
   const { data, error } = await getSupabaseClient().functions.invoke<T>(
@@ -114,7 +127,8 @@ export const WaCampaignForm = () => {
       with_name: saved.with_name,
       daily_cap: saved.daily_cap,
       auto_daily: saved.auto_daily,
-      send_hour: saved.send_hour,
+      send_from_hour: saved.send_from_hour,
+      send_to_hour: saved.send_to_hour,
       audience: { ...emptyDraft().audience, ...saved.audience },
       new_only: saved.audience?.new_only === true,
     });
@@ -157,9 +171,13 @@ export const WaCampaignForm = () => {
     draft.name.trim() !== "" &&
     draft.template_name.trim() !== "" &&
     draft.daily_cap >= 1 &&
+    draft.send_from_hour < draft.send_to_hour &&
     (eligible ?? 0) > 0;
   const room = Math.max(0, draft.daily_cap - sent24h);
   const batchSize = Math.min(room, eligible ?? 0);
+  const hourNow = cairoHour();
+  const windowOpen =
+    hourNow >= draft.send_from_hour && hourNow < draft.send_to_hour;
 
   const save = async (): Promise<number> => {
     const data = {
@@ -169,7 +187,8 @@ export const WaCampaignForm = () => {
       with_name: draft.with_name,
       daily_cap: draft.daily_cap,
       auto_daily: draft.auto_daily,
-      send_hour: draft.send_hour,
+      send_from_hour: draft.send_from_hour,
+      send_to_hour: draft.send_to_hour,
       audience,
     };
     if (draft.auto_daily) await invoke({ action: "arm" });
@@ -435,23 +454,53 @@ export const WaCampaignForm = () => {
                 />
                 Send the next batch automatically every day
               </label>
-              {draft.auto_daily && (
-                <div className="flex items-center gap-2">
-                  <span>at</span>
+              <div className="flex flex-col gap-1.5 pt-1">
+                <span className="font-medium">Sending hours</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span>from</span>
                   <select
-                    value={draft.send_hour}
-                    onChange={(e) => set("send_hour", Number(e.target.value))}
+                    aria-label="Send from"
+                    value={draft.send_from_hour}
+                    onChange={(e) =>
+                      set("send_from_hour", Number(e.target.value))
+                    }
                     className="h-9 rounded-md border bg-background px-2"
                   >
                     {Array.from({ length: 24 }, (_, h) => (
                       <option key={h} value={h}>
-                        {String(h).padStart(2, "0")}:00
+                        {hourLabel(h)}
+                      </option>
+                    ))}
+                  </select>
+                  <span>to</span>
+                  <select
+                    aria-label="Send until"
+                    value={draft.send_to_hour}
+                    onChange={(e) =>
+                      set("send_to_hour", Number(e.target.value))
+                    }
+                    className="h-9 rounded-md border bg-background px-2"
+                  >
+                    {Array.from({ length: 24 }, (_, i) => i + 1).map((h) => (
+                      <option key={h} value={h}>
+                        {hourLabel(h)}
                       </option>
                     ))}
                   </select>
                   <span className="text-muted-foreground">Cairo time</span>
                 </div>
-              )}
+                {draft.send_from_hour >= draft.send_to_hour ? (
+                  <p className="text-xs text-destructive">
+                    The end time must be after the start time.
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    No messages go out outside these hours.
+                    {draft.auto_daily &&
+                      " The daily batch is spread over them, a share every hour."}
+                  </p>
+                )}
+              </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Sent in last 24h</span>
                 <span>{sent24h}</span>
@@ -474,7 +523,7 @@ export const WaCampaignForm = () => {
             </Button>
             <Button
               className="flex-1"
-              disabled={busy || !valid || batchSize === 0}
+              disabled={busy || !valid || batchSize === 0 || !windowOpen}
               onClick={() => setConfirming(true)}
             >
               Send next batch
@@ -483,6 +532,12 @@ export const WaCampaignForm = () => {
           {valid && batchSize === 0 && (
             <p className="text-xs text-muted-foreground">
               Daily limit reached. You can send the next batch later.
+            </p>
+          )}
+          {valid && batchSize > 0 && !windowOpen && (
+            <p className="text-xs text-muted-foreground">
+              Outside the sending hours ({hourLabel(draft.send_from_hour)} to{" "}
+              {hourLabel(draft.send_to_hour)} Cairo time). You can send then.
             </p>
           )}
         </div>

@@ -345,13 +345,15 @@ create table public.wa_campaigns (
     audience jsonb not null default '{}'::jsonb,
     daily_cap integer not null default 50,
     auto_daily boolean not null default false,
-    send_hour smallint not null default 10,
+    send_from_hour smallint not null default 11,
+    send_to_hour smallint not null default 20,
     status text not null default 'draft',
     error text,
     sales_id bigint,
     constraint wa_campaigns_status_check check (status in ('draft', 'active', 'done')),
     constraint wa_campaigns_daily_cap_check check (daily_cap between 1 and 1000),
-    constraint wa_campaigns_send_hour_check check (send_hour between 0 and 23)
+    constraint wa_campaigns_send_window_check
+        check (send_from_hour between 0 and 23 and send_to_hour between 1 and 24 and send_from_hour < send_to_hour)
 );
 
 

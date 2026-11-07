@@ -19,8 +19,10 @@ import {
 //  - never to companies that opted out (STOP)
 //  - never twice to the same number (any earlier WhatsApp message counts)
 //  - at most daily_cap messages per rolling 24 hours across all campaigns
-// Automatic campaigns are triggered every hour by pg_cron (run_wa_auto_campaigns),
-// which calls this function with the x-cron-token header.
+//  - only inside the campaign's sending window (Cairo time)
+// Automatic campaigns are triggered every hour of their window by pg_cron
+// (run_wa_auto_campaigns), which calls this function with the x-cron-token
+// header; each call sends that hour's share of what is left for the day.
 const CONCURRENCY = 5;
 const MAX_BATCH = 250;
 
@@ -104,13 +106,47 @@ type Campaign = {
   with_name: boolean;
   audience: Audience | null;
   daily_cap: number;
+  send_from_hour: number;
+  send_to_hour: number;
   sales_id: number | null;
 };
 
-/** Sends the next batch of a campaign and reports what happened. */
-async function runBatch(campaign: Campaign, salesId: number | null) {
-  const room = campaign.daily_cap - (await sentLast24h());
+const cairoHour = () =>
+  Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Africa/Cairo",
+      hour: "numeric",
+      hourCycle: "h23",
+    }).format(new Date()),
+  );
+
+const hourLabel = (h: number) => `${String(h).padStart(2, "0")}:00`;
+
+const inWindow = (campaign: Campaign, hour = cairoHour()) =>
+  hour >= campaign.send_from_hour && hour < campaign.send_to_hour;
+
+/**
+ * Sends the next batch of a campaign and reports what happened.
+ * With spread, sends only this hour's share of the room left for the day,
+ * so an automatic campaign is spread evenly over its window.
+ */
+async function runBatch(
+  campaign: Campaign,
+  salesId: number | null,
+  spread = false,
+) {
+  const hour = cairoHour();
   const all = await eligible(campaign.audience ?? {});
+  if (!inWindow(campaign, hour)) {
+    return {
+      sent: 0,
+      failed: 0,
+      remaining: all.length,
+      message: `This campaign sends only between ${hourLabel(campaign.send_from_hour)} and ${hourLabel(campaign.send_to_hour)} Cairo time.`,
+    };
+  }
+  let room = campaign.daily_cap - (await sentLast24h());
+  if (spread) room = Math.ceil(room / (campaign.send_to_hour - hour));
   if (room <= 0) {
     return {
       sent: 0,
@@ -221,7 +257,7 @@ Deno.serve((req: Request) =>
         return json({ status: "skipped" });
       }
       EdgeRuntime.waitUntil(
-        runBatch(campaign, campaign.sales_id).catch((e) =>
+        runBatch(campaign, campaign.sales_id, true).catch((e) =>
           console.error("wa_campaign_send cron", e),
         ),
       );

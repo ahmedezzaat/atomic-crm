@@ -475,6 +475,7 @@ declare
     base_url text;
     token text;
     campaign record;
+    cairo_hour int := extract(hour from (now() at time zone 'Africa/Cairo'))::int;
 begin
     select value into base_url from public.integration_secrets where key = 'functions_url';
     select value into token from public.integration_secrets where key = 'cron_token';
@@ -486,7 +487,8 @@ begin
         where auto_daily
           and status <> 'done'
           and template_name <> ''
-          and send_hour = extract(hour from (now() at time zone 'Africa/Cairo'))::int
+          and cairo_hour >= send_from_hour
+          and cairo_hour < send_to_hour
     loop
         perform net.http_post(
             url := base_url || '/wa_campaign_send',
