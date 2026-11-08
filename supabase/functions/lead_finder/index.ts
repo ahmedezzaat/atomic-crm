@@ -339,7 +339,7 @@ Deno.serve((req: Request) =>
                 .eq("id", Number(body.search_id));
             }
           }
-          const cities = city && created > 0 ? await saveCity(city) : null;
+          const cities = city ? await saveCity(city) : null;
           return json({ created, skipped, ids, cities });
         }
 
