@@ -105,6 +105,26 @@ async function saveCity(city: string) {
   return error ? null : next;
 }
 
+/** The Sector value in Settings whose label matches (e.g. "Broker" -> "broker"). */
+async function sectorValue(label: string) {
+  if (!label) return null;
+  const { data: row } = await supabaseAdmin
+    .from("configuration")
+    .select("config")
+    .eq("id", 1)
+    .maybeSingle();
+  const sectors = (row?.config as Record<string, unknown> | undefined)
+    ?.companySectors;
+  if (!Array.isArray(sectors)) return null;
+  const found = sectors.find(
+    (x) =>
+      String(x?.label ?? "")
+        .trim()
+        .toLowerCase() === label.toLowerCase(),
+  );
+  return found?.value ? String(found.value) : null;
+}
+
 async function ensureTag(name: string): Promise<number> {
   const { data: found } = await supabaseAdmin
     .from("company_tags")
@@ -261,6 +281,7 @@ Deno.serve((req: Request) =>
             : [];
           const city = str(body.city, 100) || null;
           const segment = str(body.segment, 80);
+          const sector = await sectorValue(str(body.sector, 80));
           await ensureLeadSource();
           const tagId = segment ? await ensureTag(segment) : null;
 
@@ -309,6 +330,7 @@ Deno.serve((req: Request) =>
                 address: str(item.address, 300) || null,
                 city,
                 lead_source: SOURCE,
+                sector,
                 description: extra || null,
                 sales_id: sale.id,
                 tags: tagId ? [tagId] : [],

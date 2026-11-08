@@ -36,8 +36,16 @@ type Place = {
 };
 
 const SEGMENTS = [
-  { label: "Real estate developers", query: "real estate developer" },
-  { label: "Real estate brokers", query: "real estate agency" },
+  {
+    label: "Real estate developers",
+    query: "real estate developer",
+    sector: "Developer",
+  },
+  {
+    label: "Real estate brokers",
+    query: "real estate agency",
+    sector: "Broker",
+  },
 ];
 
 const AREAS: Record<string, string[]> = {
@@ -225,6 +233,7 @@ export const FindLeads = () => {
         items,
         city: area.trim(),
         segment: segment.label,
+        sector: segment.sector,
         search_id: searchId,
       });
       if (res.cities)
