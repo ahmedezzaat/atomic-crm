@@ -69,6 +69,42 @@ async function ensureLeadSource() {
   });
 }
 
+/**
+ * Adds an area to the cities list in Settings so companies can be filtered and
+ * edited with it later. Returns the new list, or null when nothing changed.
+ * Only touches a configuration that was already saved from Settings.
+ */
+async function saveCity(city: string) {
+  const { data: row } = await supabaseAdmin
+    .from("configuration")
+    .select("config")
+    .eq("id", 1)
+    .maybeSingle();
+  const config = row?.config as Record<string, unknown> | undefined;
+  const cities = config?.companyCities;
+  if (!config || !Array.isArray(cities)) return null;
+  const same = (c: { label?: string }) =>
+    String(c.label ?? "")
+      .trim()
+      .toLowerCase() === city.toLowerCase();
+  if (cities.some(same)) return null;
+  const next = [
+    ...cities,
+    {
+      value: city
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, ""),
+      label: city,
+    },
+  ];
+  const { error } = await supabaseAdmin
+    .from("configuration")
+    .update({ config: { ...config, companyCities: next } })
+    .eq("id", 1);
+  return error ? null : next;
+}
+
 async function ensureTag(name: string): Promise<number> {
   const { data: found } = await supabaseAdmin
     .from("company_tags")
@@ -303,7 +339,8 @@ Deno.serve((req: Request) =>
                 .eq("id", Number(body.search_id));
             }
           }
-          return json({ created, skipped, ids });
+          const cities = city && created > 0 ? await saveCity(city) : null;
+          return json({ created, skipped, ids, cities });
         }
 
         return createErrorResponse(400, "Unknown action");

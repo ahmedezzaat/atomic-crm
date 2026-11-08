@@ -16,6 +16,10 @@ import {
 } from "@/components/ui/table";
 
 import { enrichCompanies } from "../companies/enrich";
+import {
+  useConfigurationContext,
+  useConfigurationUpdater,
+} from "../root/ConfigurationContext";
 import { getSupabaseClient } from "../providers/supabase/supabase";
 import { secretFieldProps } from "../misc/secretField";
 
@@ -111,10 +115,23 @@ const call = async <T,>(body: Record<string, unknown>) => {
 
 export const FindLeads = () => {
   const notify = useNotify();
+  const config = useConfigurationContext();
+  const updateConfiguration = useConfigurationUpdater();
   const [configured, setConfigured] = useState<boolean>();
   const [newKey, setNewKey] = useState("");
   const [segment, setSegment] = useState(SEGMENTS[0]);
   const [area, setArea] = useState("");
+  const savedCities = new Set(
+    config.companyCities.map((c) => c.label.trim().toLowerCase()),
+  );
+  const knownAreas = new Set(
+    Object.values(AREAS)
+      .flat()
+      .map((a) => a.toLowerCase()),
+  );
+  const otherCities = config.companyCities
+    .map((c) => c.label.trim())
+    .filter((c) => c && !knownAreas.has(c.toLowerCase()));
   const [places, setPlaces] = useState<Place[]>([]);
   const [nextToken, setNextToken] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -202,6 +219,7 @@ export const FindLeads = () => {
         created: number;
         skipped: number;
         ids: number[];
+        cities: { value: string; label: string }[] | null;
       }>({
         action: "import",
         items,
@@ -209,8 +227,10 @@ export const FindLeads = () => {
         segment: segment.label,
         search_id: searchId,
       });
+      if (res.cities)
+        updateConfiguration({ ...config, companyCities: res.cities });
       notify(
-        `${res.created} added to the CRM${res.skipped ? `, ${res.skipped} skipped (already there)` : ""}`,
+        `${res.created} added to the CRM${res.skipped ? `, ${res.skipped} skipped (already there)` : ""}${res.cities ? `. "${area}" was saved to your cities in Settings.` : ""}`,
       );
       if (enrich && res.ids.length > 0) {
         notify("Looking for emails and numbers on their websites…");
@@ -314,11 +334,25 @@ export const FindLeads = () => {
                   {list.map((a) => (
                     <option key={a} value={a}>
                       {a}
+                      {savedCities.has(a.toLowerCase()) ? " ✓" : ""}
                     </option>
                   ))}
                 </optgroup>
               ))}
+              {otherCities.length > 0 && (
+                <optgroup label="Your other cities (Settings)">
+                  {otherCities.map((c) => (
+                    <option key={c} value={c}>
+                      {c} ✓
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
+            <p className="text-xs text-muted-foreground">
+              ✓ = saved in your cities (Settings). Areas you add to the CRM are
+              saved there automatically.
+            </p>
           </div>
           <Button onClick={() => search()} disabled={busy || !configured}>
             <Search className="h-4 w-4" />
