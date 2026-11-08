@@ -40,7 +40,7 @@ export const CompanyList = () => {
 
 const CompanyListLayout = () => {
   const { data, isPending, filterValues } = useListContext();
-  const [view] = useStore<View>(VIEW_STORE_KEY, "cards");
+  const [view] = useStore<View>(VIEW_STORE_KEY, "list");
   const hasFilters = filterValues && Object.keys(filterValues).length > 0;
 
   if (isPending) return null;
@@ -58,7 +58,7 @@ const CompanyListLayout = () => {
 
 const CompanyListActions = () => {
   const translate = useTranslate();
-  const [view, setView] = useStore<View>(VIEW_STORE_KEY, "cards");
+  const [view, setView] = useStore<View>(VIEW_STORE_KEY, "list");
   return (
     <TopToolbar>
       <div className="flex">

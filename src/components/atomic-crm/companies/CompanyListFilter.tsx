@@ -1,4 +1,4 @@
-import { Building, Megaphone, Tag, Truck, Users } from "lucide-react";
+import { Building, MapPin, Megaphone, Tag, Truck, Users } from "lucide-react";
 import {
   FilterLiveForm,
   useGetIdentity,
@@ -17,7 +17,8 @@ import { sizes } from "./sizes";
 
 export const CompanyListFilter = () => {
   const { identity } = useGetIdentity();
-  const { companySectors, companyLeadSources } = useConfigurationContext();
+  const { companyCities, companySectors, companyLeadSources } =
+    useConfigurationContext();
   const translate = useTranslate();
   const { data: companyTags } = useGetList("company_tags", {
     pagination: { page: 1, perPage: 1000 },
@@ -43,6 +44,17 @@ export const CompanyListFilter = () => {
             label={size.name}
             key={size.name}
             value={{ size: size.id }}
+          />
+        ))}
+      </FilterCategory>
+
+      <FilterCategory icon={<MapPin className="h-4 w-4" />} label="Area">
+        {companyCities.map((city) => (
+          <ToggleFilterButton
+            className="w-full justify-between"
+            label={city.label}
+            key={city.value}
+            value={{ city: city.label }}
           />
         ))}
       </FilterCategory>
