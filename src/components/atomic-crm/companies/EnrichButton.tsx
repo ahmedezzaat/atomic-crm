@@ -23,7 +23,9 @@ export const EnrichButton = ({ company }: { company: Company }) => {
       else
         notify(
           res.emails || res.phones
-            ? `Found ${res.emails} email(s) and ${res.phones} extra number(s). See the Contacts tab.`
+            ? res.emails
+              ? `Found ${res.emails} email(s). The best one was saved as the company email.`
+              : `Found ${res.phones} extra number(s).`
             : "Nothing new found on the website.",
         );
       refresh();
@@ -43,7 +45,7 @@ export const EnrichButton = ({ company }: { company: Company }) => {
       onClick={run}
     >
       <Sparkles className="h-4 w-4" />
-      {busy ? "Looking…" : "Find emails & numbers"}
+      {busy ? "Looking…" : "Find email"}
     </Button>
   );
 };

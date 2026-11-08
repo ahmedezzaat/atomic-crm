@@ -15,7 +15,6 @@ const BUDGET_MS = 100_000;
 const CONCURRENCY = 4;
 // Tests point this at a stand-in site on localhost
 const ALLOW_PRIVATE = Deno.env.get("ENRICH_ALLOW_PRIVATE") === "true";
-const MARKER = "Found on the company website";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -182,6 +181,33 @@ function contactPages(html: string, base: URL): URL[] {
   return found;
 }
 
+/** Prefers an address on the company's own domain, then info@, sales@, contact@… */
+function pickEmail(emails: string[], website: string | null) {
+  let host = "";
+  try {
+    host = new URL(
+      /^https?:\/\//i.test(website ?? "") ? website! : `https://${website}`,
+    ).hostname.replace(/^www\./, "");
+  } catch {
+    // no usable website: rank by the address alone
+  }
+  const score = (email: string) => {
+    const [local, domain] = email.split("@");
+    let points = 0;
+    if (
+      host &&
+      (domain === host ||
+        host.endsWith(`.${domain}`) ||
+        domain.endsWith(`.${host}`))
+    )
+      points += 2;
+    if (/^(info|sales|contact|hello|enquir|inquir|office|support)/.test(local))
+      points += 1;
+    return points;
+  };
+  return [...emails].sort((a, b) => score(b) - score(a))[0];
+}
+
 async function enrichOne(company: {
   id: number;
   website: string | null;
@@ -217,33 +243,6 @@ async function enrichOne(company: {
   const emailList = [...emails].slice(0, 5);
   const phoneList = [...phones].slice(0, 5);
 
-  if (emailList.length || phoneList.length) {
-    const { data: existing } = await supabaseAdmin
-      .from("contacts")
-      .select("id")
-      .eq("company_id", company.id)
-      .eq("background", MARKER)
-      .maybeSingle();
-    const values = {
-      email_jsonb: emailList.map((email) => ({ email, type: "Work" })),
-      phone_jsonb: phoneList.map((n) => ({ number: `+${n}`, type: "Work" })),
-      last_seen: new Date().toISOString(),
-    };
-    if (existing) {
-      await supabaseAdmin.from("contacts").update(values).eq("id", existing.id);
-    } else {
-      await supabaseAdmin.from("contacts").insert({
-        first_name: "Website",
-        last_name: "contact",
-        background: MARKER,
-        company_id: company.id,
-        sales_id: company.sales_id,
-        first_seen: new Date().toISOString(),
-        ...values,
-      });
-    }
-  }
-
   const update: Record<string, unknown> = {
     enriched_at: new Date().toISOString(),
   };
@@ -254,8 +253,9 @@ async function enrichOne(company: {
   const merged = [...new Set([...known, ...Object.values(others)])];
   if (merged.length !== known.length) update.context_links = merged;
   if (linkedin && !company.linkedin_url) update.linkedin_url = linkedin;
-  // the first email found becomes the company email when it has none
-  if (!company.email && emailList.length) update.email = emailList[0];
+  // the best email found becomes the company email when it has none
+  if (!company.email && emailList.length)
+    update.email = pickEmail(emailList, company.website);
   // a company with no number at all gets the first mobile found, so it can be messaged
   if (!own && phoneList.length) update.phone_number = `+${phoneList[0]}`;
   await supabaseAdmin.from("companies").update(update).eq("id", company.id);
@@ -289,12 +289,16 @@ Deno.serve(async (req: Request) =>
           .slice(0, BATCH_LIMIT);
         if (ids.length === 0) return createErrorResponse(400, "No companies");
 
-        const { data: companies } = await supabaseAdmin
+        const { data: found } = await supabaseAdmin
           .from("companies")
           .select(
-            "id,website,phone_number,linkedin_url,email,context_links,sales_id",
+            "id,website,phone_number,linkedin_url,email,context_links,sales_id,enriched_at",
           )
           .in("id", ids);
+        // only_new: for bulk runs, leave out companies that have an email or were already looked up
+        const companies = body.only_new
+          ? (found ?? []).filter((c) => !c.email && !c.enriched_at)
+          : found;
 
         const started = Date.now();
         const queue = [...(companies ?? [])];

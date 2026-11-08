@@ -18,6 +18,7 @@ import { CompanyEmpty } from "./CompanyEmpty";
 import { CompanyListFilter } from "./CompanyListFilter";
 import { ImageList } from "./GridList";
 import { CompanyTable } from "./CompanyTable";
+import { FindEmailsButton } from "./FindEmailsButton";
 
 const VIEW_STORE_KEY = "companies.list.view";
 type View = "cards" | "list";
@@ -82,6 +83,7 @@ const CompanyListActions = () => {
         </Button>
       </div>
       <SortButton fields={["name", "created_at", "nb_contacts"]} />
+      <FindEmailsButton />
       <DataImportButton resource="companies" />
       <ExportButton />
       <CreateButton

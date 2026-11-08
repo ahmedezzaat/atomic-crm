@@ -8,11 +8,11 @@ export type EnrichSummary = {
 };
 
 /** Looks for emails, extra numbers and social links on the companies' websites. */
-export const enrichCompanies = async (ids: number[]) => {
+export const enrichCompanies = async (ids: number[], onlyNew = false) => {
   const { data, error } =
     await getSupabaseClient().functions.invoke<EnrichSummary>(
       "company_enrich",
-      { method: "POST", body: { company_ids: ids } },
+      { method: "POST", body: { company_ids: ids, only_new: onlyNew } },
     );
   if (error || !data) {
     const detail = await (error as any)?.context?.json?.().catch(() => null);
