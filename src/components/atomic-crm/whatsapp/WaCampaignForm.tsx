@@ -287,7 +287,7 @@ export const WaCampaignForm = () => {
         remaining: number;
         message?: string;
         error?: string | null;
-      }>({ campaign_id: campaignId });
+      }>({ campaign_id: campaignId, ignore_hours: !windowOpen });
       notify(
         r.message ??
           `${r.sent} sent${r.failed ? `, ${r.failed} failed (${r.error})` : ""}. ${r.remaining} still waiting.`,
@@ -736,10 +736,10 @@ export const WaCampaignForm = () => {
             </Button>
             <Button
               className="flex-1"
-              disabled={busy || !valid || batchSize === 0 || !windowOpen}
+              disabled={busy || !valid || batchSize === 0}
               onClick={() => setConfirming(true)}
             >
-              Send next batch
+              {windowOpen ? "Send next batch" : "Send now"}
             </Button>
           </div>
           {valid && batchSize === 0 && (
@@ -750,7 +750,8 @@ export const WaCampaignForm = () => {
           {valid && batchSize > 0 && !windowOpen && (
             <p className="text-xs text-muted-foreground">
               Outside the sending hours ({hourLabel(draft.send_from_hour)} to{" "}
-              {hourLabel(draft.send_to_hour)} Cairo time). You can send then.
+              {hourLabel(draft.send_to_hour)} Cairo time). Automatic sending
+              waits for them. "Send now" sends a batch anyway.
             </p>
           )}
         </div>
@@ -766,6 +767,8 @@ export const WaCampaignForm = () => {
                 ? ` (${Math.min(followupsDue, batchSize)} of them a follow-up)`
                 : ` ("${draft.template_name}")`}
               . Each message is billed by Meta and can't be recalled.
+              {!windowOpen &&
+                " This is outside the campaign's sending hours, so people may get it at an odd time."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

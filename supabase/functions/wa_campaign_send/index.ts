@@ -19,7 +19,8 @@ import {
 //  - never to companies that opted out (STOP)
 //  - never twice to the same number (any earlier WhatsApp message counts)
 //  - at most daily_cap messages per rolling 24 hours across all campaigns
-//  - only inside the campaign's sending window (Cairo time)
+//  - automatic sending only inside the campaign's sending window (Cairo time);
+//    a person can send a batch by hand outside it
 //  - follow-ups only to people who got the earlier message, did not reply,
 //    did not opt out and have no open deal
 // Automatic campaigns are triggered every hour of their window by pg_cron
@@ -255,10 +256,11 @@ async function runBatch(
   campaign: Campaign,
   salesId: number | null,
   spread = false,
+  ignoreHours = false,
 ) {
   const hour = cairoHour();
   const all = await eligible(campaign.audience ?? {});
-  if (!inWindow(campaign, hour)) {
+  if (!ignoreHours && !inWindow(campaign, hour)) {
     return {
       sent: 0,
       failed: 0,
@@ -267,7 +269,8 @@ async function runBatch(
     };
   }
   let room = campaign.daily_cap - (await sentLast24h());
-  if (spread) room = Math.ceil(room / (campaign.send_to_hour - hour));
+  if (spread && inWindow(campaign, hour))
+    room = Math.ceil(room / (campaign.send_to_hour - hour));
   if (room <= 0) {
     return {
       sent: 0,
@@ -463,7 +466,15 @@ Deno.serve((req: Request) =>
           .eq("user_id", user!.id)
           .maybeSingle();
         try {
-          return json(await runBatch(campaign, sale?.id ?? null));
+          // a person clicking "send now" may go outside the hours; automatic sending never does
+          return json(
+            await runBatch(
+              campaign,
+              sale?.id ?? null,
+              false,
+              body.ignore_hours === true,
+            ),
+          );
         } catch (e) {
           return createErrorResponse(
             500,
