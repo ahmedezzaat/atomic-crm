@@ -318,8 +318,14 @@ Deno.serve(async (req: Request) =>
           const wabaId = (await getSecret("wa_waba_id")) ?? "";
           const problems: string[] = [];
           let number: Record<string, unknown> | null = null;
-          let templates: { name: string; language: string; status: string }[] =
-            [];
+          let templates: {
+            name: string;
+            language: string;
+            status: string;
+            header: string;
+            header_vars: number;
+            body_vars: number;
+          }[] = [];
           if (!token || !phoneId) {
             problems.push("WhatsApp is not connected yet.");
           } else {
@@ -337,7 +343,7 @@ Deno.serve(async (req: Request) =>
             }
             if (wabaId) {
               const list = await fetch(
-                `${API_BASE}/${wabaId}/message_templates?fields=name,language,status&limit=100`,
+                `${API_BASE}/${wabaId}/message_templates?fields=name,language,status,components&limit=100`,
                 auth,
               )
                 .then((r) => r.json())
@@ -345,11 +351,26 @@ Deno.serve(async (req: Request) =>
               if (list?.error) {
                 problems.push(`Templates: ${list.error.message}`);
               } else {
-                templates = (list?.data ?? []).map((t: any) => ({
-                  name: String(t.name),
-                  language: String(t.language),
-                  status: String(t.status),
-                }));
+                const vars = (text: unknown) =>
+                  new Set(String(text ?? "").match(/\{\{\s*\w+\s*\}\}/g) ?? [])
+                    .size;
+                templates = (list?.data ?? []).map((t: any) => {
+                  const part = (type: string) =>
+                    (t.components ?? []).find(
+                      (c: any) => String(c.type).toUpperCase() === type,
+                    );
+                  const header = part("HEADER");
+                  return {
+                    name: String(t.name),
+                    language: String(t.language),
+                    status: String(t.status),
+                    header: header
+                      ? String(header.format ?? "TEXT").toUpperCase()
+                      : "NONE",
+                    header_vars: header ? vars(header.text) : 0,
+                    body_vars: vars(part("BODY")?.text),
+                  };
+                });
               }
             } else {
               problems.push(

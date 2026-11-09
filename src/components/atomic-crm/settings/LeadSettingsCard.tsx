@@ -32,7 +32,14 @@ type Status = {
       platform_type?: string;
       name_status?: string;
     } | null;
-    templates: { name: string; language: string; status: string }[];
+    templates: {
+      name: string;
+      language: string;
+      status: string;
+      header?: string;
+      header_vars?: number;
+      body_vars?: number;
+    }[];
     problems: string[];
     accounts?: {
       waba_id: string;
@@ -669,6 +676,17 @@ export const LeadSettingsCard = () => {
                         >
                           <span dir="ltr">
                             {t.name} · {t.language} · <b>{t.status}</b>
+                            {t.header !== undefined && (
+                              <span className="text-muted-foreground">
+                                {" "}
+                                · header:{" "}
+                                {t.header === "NONE"
+                                  ? "none"
+                                  : t.header.toLowerCase()}
+                                {t.header_vars ? " + variable" : ""} · body
+                                variables: {t.body_vars ?? 0}
+                              </span>
+                            )}
                           </span>
                           {t.status === "APPROVED" && (
                             <Button
