@@ -51,6 +51,52 @@ async function post(payload: Record<string, unknown>): Promise<SendResult> {
   };
 }
 
+export type HeaderMedia = {
+  type: "image" | "video" | "document";
+  link: string;
+};
+
+const byExtension = (link: string): HeaderMedia["type"] =>
+  /\.(mp4|3gp|mov)(\?|$)/i.test(link)
+    ? "video"
+    : /\.pdf(\?|$)/i.test(link)
+      ? "document"
+      : "image";
+
+/**
+ * The header media for a template: its kind (image, video or document) is what
+ * the template was approved with, which Meta reports. Falls back to the file
+ * extension of the link when Meta cannot be asked.
+ */
+export async function headerMediaFor(
+  template: { name: string; language: string },
+  link: string | undefined,
+): Promise<HeaderMedia | undefined> {
+  if (!link) return undefined;
+  let type = byExtension(link);
+  const token = await getSecret("wa_access_token");
+  const waba = await getSecret("wa_waba_id");
+  if (!WA_DRY_RUN && token && waba) {
+    const list = await fetch(
+      `${API_BASE}/${waba}/message_templates?name=${encodeURIComponent(template.name)}&fields=language,components&limit=50`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    )
+      .then((r) => r.json())
+      .catch(() => null);
+    const found = (list?.data ?? []).find(
+      (t: { language?: string }) => t.language === template.language,
+    );
+    const format = String(
+      (found?.components ?? []).find(
+        (c: { type?: string }) => String(c.type).toUpperCase() === "HEADER",
+      )?.format ?? "",
+    ).toLowerCase();
+    if (format === "image" || format === "video" || format === "document")
+      type = format;
+  }
+  return { type, link };
+}
+
 /** Template message: the only kind allowed to start a conversation. */
 export async function sendTemplate(
   to: string,
@@ -58,17 +104,22 @@ export async function sendTemplate(
     name: string;
     language: string;
     bodyParams?: string[];
-    /** public https link, for templates whose header is an image */
-    headerImage?: string;
+    /** public https link, for templates whose header is an image, video or document */
+    headerMedia?: HeaderMedia;
   },
 ) {
   const components = [
-    ...(template.headerImage
+    ...(template.headerMedia
       ? [
           {
             type: "header",
             parameters: [
-              { type: "image", image: { link: template.headerImage } },
+              {
+                type: template.headerMedia.type,
+                [template.headerMedia.type]: {
+                  link: template.headerMedia.link,
+                },
+              },
             ],
           },
         ]

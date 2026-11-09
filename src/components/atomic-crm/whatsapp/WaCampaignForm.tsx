@@ -409,7 +409,8 @@ export const WaCampaignForm = () => {
                 </label>
                 <div className="flex flex-col gap-1.5 md:col-span-2">
                   <Label htmlFor="wa-img">
-                    Header image link (only if the template has an image header)
+                    Header media link (only if the template has an image, video
+                    or document header)
                   </Label>
                   <Input
                     id="wa-img"
@@ -419,9 +420,11 @@ export const WaCampaignForm = () => {
                     placeholder="https://yourwebsite.com/intro.jpg"
                   />
                   <p className="text-xs text-muted-foreground">
-                    A public https link to a JPG or PNG (up to 5 MB) that anyone
-                    can open. Meta needs it with every message, so a template
-                    with an image header fails without it.
+                    A public https link that anyone can open: a JPG or PNG (up
+                    to 5 MB), an MP4 video (H.264, up to 16 MB) or a PDF. It
+                    must match the template's header type. Meta needs it with
+                    every message, so a template with a media header fails
+                    without it.
                   </p>
                 </div>
               </div>
@@ -577,7 +580,7 @@ export const WaCampaignForm = () => {
                   </label>
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor={`wa-fu-img-${i}`}>
-                      Header image link (only if it has an image header)
+                      Header media link (only if it has a media header)
                     </Label>
                     <Input
                       id={`wa-fu-img-${i}`}

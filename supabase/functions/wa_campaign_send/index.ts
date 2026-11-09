@@ -9,6 +9,8 @@ import {
   setSecret,
 } from "../_shared/integrationSecrets.ts";
 import {
+  type HeaderMedia,
+  headerMediaFor,
   normalizePhone,
   sendTemplate,
   whatsappConfigured,
@@ -330,6 +332,23 @@ async function runBatch(
     .update({ status: "active", error: null })
     .eq("id", campaign.id);
 
+  // the header kind (image, video, document) of every template in this batch
+  const headers = new Map<string, HeaderMedia | undefined>();
+  for (const t of batch) {
+    const key = `${t.template.template_name}|${t.template.template_language}`;
+    if (!headers.has(key))
+      headers.set(
+        key,
+        await headerMediaFor(
+          {
+            name: t.template.template_name,
+            language: t.template.template_language,
+          },
+          t.template.header_image_url,
+        ),
+      );
+  }
+
   // one message per phone in a batch
   const targetByPhone = new Map(batch.map((t) => [t.phone, t]));
   const queue = [...(rows ?? [])];
@@ -343,7 +362,9 @@ async function runBatch(
         name: target.template.template_name,
         language: target.template.template_language,
         bodyParams: target.template.with_name ? [target.name] : [],
-        headerImage: target.template.header_image_url || undefined,
+        headerMedia: headers.get(
+          `${target.template.template_name}|${target.template.template_language}`,
+        ),
       });
       if (result.id) sent++;
       else {
