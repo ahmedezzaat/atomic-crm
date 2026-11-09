@@ -105,6 +105,7 @@ type Template = {
   template_name: string;
   template_language: string;
   with_name: boolean;
+  header_image_url?: string;
 };
 
 type Followup = Template & { after_hours: number };
@@ -339,6 +340,7 @@ async function runBatch(
         name: target.template.template_name,
         language: target.template.template_language,
         bodyParams: target.template.with_name ? [target.name] : [],
+        headerImage: target.template.header_image_url || undefined,
       });
       if (result.id) sent++;
       else {

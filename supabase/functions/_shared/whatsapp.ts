@@ -54,27 +54,44 @@ async function post(payload: Record<string, unknown>): Promise<SendResult> {
 /** Template message: the only kind allowed to start a conversation. */
 export async function sendTemplate(
   to: string,
-  template: { name: string; language: string; bodyParams?: string[] },
+  template: {
+    name: string;
+    language: string;
+    bodyParams?: string[];
+    /** public https link, for templates whose header is an image */
+    headerImage?: string;
+  },
 ) {
+  const components = [
+    ...(template.headerImage
+      ? [
+          {
+            type: "header",
+            parameters: [
+              { type: "image", image: { link: template.headerImage } },
+            ],
+          },
+        ]
+      : []),
+    ...(template.bodyParams?.length
+      ? [
+          {
+            type: "body",
+            parameters: template.bodyParams.map((text) => ({
+              type: "text",
+              text,
+            })),
+          },
+        ]
+      : []),
+  ];
   return await post({
     to,
     type: "template",
     template: {
       name: template.name,
       language: { code: template.language },
-      ...(template.bodyParams?.length
-        ? {
-            components: [
-              {
-                type: "body",
-                parameters: template.bodyParams.map((text) => ({
-                  type: "text",
-                  text,
-                })),
-              },
-            ],
-          }
-        : {}),
+      ...(components.length ? { components } : {}),
     },
   });
 }

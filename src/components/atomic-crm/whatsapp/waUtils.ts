@@ -14,6 +14,7 @@ export type WaFollowup = {
   template_name: string;
   template_language: string;
   with_name: boolean;
+  header_image_url?: string;
 };
 
 export type WaCampaign = {
@@ -22,6 +23,7 @@ export type WaCampaign = {
   template_name: string;
   template_language: string;
   with_name: boolean;
+  header_image_url: string;
   audience: WaAudience;
   daily_cap: number;
   auto_daily: boolean;

@@ -351,6 +351,7 @@ create table public.wa_campaigns (
     send_from_hour smallint not null default 11,
     send_to_hour smallint not null default 20,
     followups jsonb not null default '[]'::jsonb,
+    header_image_url text not null default '',
     status text not null default 'draft',
     error text,
     sales_id bigint,

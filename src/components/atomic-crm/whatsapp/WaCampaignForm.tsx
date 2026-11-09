@@ -45,6 +45,7 @@ type Draft = {
   template_name: string;
   template_language: string;
   with_name: boolean;
+  header_image_url: string;
   daily_cap: number;
   auto_daily: boolean;
   send_from_hour: number;
@@ -59,6 +60,7 @@ const emptyDraft = (): Draft => ({
   template_name: "",
   template_language: "ar",
   with_name: true,
+  header_image_url: "",
   daily_cap: 50,
   auto_daily: false,
   send_from_hour: 11,
@@ -134,6 +136,7 @@ export const WaCampaignForm = () => {
       template_name: saved.template_name,
       template_language: saved.template_language,
       with_name: saved.with_name,
+      header_image_url: saved.header_image_url ?? "",
       daily_cap: saved.daily_cap,
       auto_daily: saved.auto_daily,
       send_from_hour: saved.send_from_hour,
@@ -231,6 +234,7 @@ export const WaCampaignForm = () => {
       template_name: draft.template_name.trim(),
       template_language: draft.template_language.trim() || "ar",
       with_name: draft.with_name,
+      header_image_url: draft.header_image_url.trim(),
       daily_cap: draft.daily_cap,
       auto_daily: draft.auto_daily,
       send_from_hour: draft.send_from_hour,
@@ -239,6 +243,7 @@ export const WaCampaignForm = () => {
         ...f,
         template_name: f.template_name.trim(),
         template_language: f.template_language.trim() || "ar",
+        header_image_url: (f.header_image_url ?? "").trim(),
       })),
       audience,
     };
@@ -402,6 +407,23 @@ export const WaCampaignForm = () => {
                   />
                   The template has {"{{1}}"} for the company name
                 </label>
+                <div className="flex flex-col gap-1.5 md:col-span-2">
+                  <Label htmlFor="wa-img">
+                    Header image link (only if the template has an image header)
+                  </Label>
+                  <Input
+                    id="wa-img"
+                    dir="ltr"
+                    value={draft.header_image_url}
+                    onChange={(e) => set("header_image_url", e.target.value)}
+                    placeholder="https://yourwebsite.com/intro.jpg"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    A public https link to a JPG or PNG (up to 5 MB) that anyone
+                    can open. Meta needs it with every message, so a template
+                    with an image header fails without it.
+                  </p>
+                </div>
               </div>
               <p className="text-xs text-muted-foreground">
                 Use the exact name and language of a template approved in Meta
@@ -553,6 +575,20 @@ export const WaCampaignForm = () => {
                     />
                     The template has {"{{1}}"} for the company name
                   </label>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor={`wa-fu-img-${i}`}>
+                      Header image link (only if it has an image header)
+                    </Label>
+                    <Input
+                      id={`wa-fu-img-${i}`}
+                      dir="ltr"
+                      value={f.header_image_url ?? ""}
+                      onChange={(e) =>
+                        setFollowup(i, { header_image_url: e.target.value })
+                      }
+                      placeholder="https://yourwebsite.com/followup.jpg"
+                    />
+                  </div>
                 </div>
               ))}
               <p className="text-xs text-muted-foreground">
