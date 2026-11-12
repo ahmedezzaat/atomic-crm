@@ -409,8 +409,12 @@ create table public.quotations (
     language text not null default 'en',
     items jsonb not null default '[]'::jsonb,
     total numeric not null default 0,
+    discount_type text not null default 'amount',
+    discount_value numeric not null default 0,
     notes text not null default '',
     terms text not null default '',
+    constraint quotations_discount_type_check check (discount_type in ('amount', 'percent')),
+    constraint quotations_discount_value_check check (discount_value >= 0),
     constraint quotations_status_check check (status in ('draft', 'sent', 'accepted', 'rejected')),
     constraint quotations_language_check check (language in ('en', 'ar')),
     constraint quotations_items_check check (jsonb_typeof(items) = 'array')

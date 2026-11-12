@@ -19,6 +19,8 @@ export type Quotation = {
   language: "en" | "ar";
   items: QuoteItem[];
   total: number;
+  discount_type: "amount" | "percent";
+  discount_value: number;
   notes: string;
   terms: string;
   created_at: string;
@@ -47,6 +49,20 @@ export const itemsTotal = (items: QuoteItem[]) =>
     0,
   );
 
+export const computeTotals = (
+  items: QuoteItem[],
+  discountType: "amount" | "percent",
+  discountValue: number,
+) => {
+  const subtotal = itemsTotal(items);
+  const raw =
+    discountType === "percent"
+      ? (subtotal * (Number(discountValue) || 0)) / 100
+      : Number(discountValue) || 0;
+  const discount = Math.min(Math.max(raw, 0), subtotal);
+  return { subtotal, discount, total: subtotal - discount };
+};
+
 export const formatMoney = (value: number, currency: string, lang = "en") =>
   `${new Intl.NumberFormat(lang === "ar" ? "ar-EG" : "en-US", {
     minimumFractionDigits: 2,
@@ -66,7 +82,10 @@ export const printLabels = {
     qty: "Qty",
     price: "Unit price",
     amount: "Amount",
+    subtotal: "Subtotal",
+    discount: "Discount",
     total: "Total",
+    address: "Nasr City, Cairo, Egypt",
     notes: "Notes",
     terms: "Terms & conditions",
   },
@@ -78,10 +97,13 @@ export const printLabels = {
     to: "مقدم إلى",
     attn: "عناية",
     description: "البيان",
-    qty: "الكمية",
+    qty: "عدد المستخدمين",
     price: "سعر الوحدة",
     amount: "الإجمالي",
+    subtotal: "المجموع",
+    discount: "الخصم",
     total: "الإجمالي الكلي",
+    address: "مدينة نصر، القاهرة، مصر",
     notes: "ملاحظات",
     terms: "الشروط والأحكام",
   },

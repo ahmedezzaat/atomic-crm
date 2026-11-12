@@ -1,7 +1,7 @@
-import { useConfigurationContext } from "../root/ConfigurationContext";
+import logo from "./kords-logo.png";
 import {
+  computeTotals,
   formatMoney,
-  itemsTotal,
   printLabels,
   type Quotation,
 } from "./quoteUtils";
@@ -16,9 +16,12 @@ export const QuotationPreview = ({
   companyName: string;
   contactName?: string;
 }) => {
-  const { title, lightModeLogo } = useConfigurationContext();
   const t = printLabels[quote.language];
-  const total = itemsTotal(quote.items);
+  const { subtotal, discount, total } = computeTotals(
+    quote.items,
+    quote.discount_type,
+    quote.discount_value,
+  );
   const lang = quote.language;
   return (
     <div
@@ -26,11 +29,9 @@ export const QuotationPreview = ({
       dir={lang === "ar" ? "rtl" : "ltr"}
     >
       <div className="flex items-start justify-between border-b pb-5">
-        <div className="flex items-center gap-3">
-          {lightModeLogo ? (
-            <img src={lightModeLogo} alt={title} className="h-10" />
-          ) : null}
-          <span className="text-lg font-semibold">{title}</span>
+        <div>
+          <img src={logo} alt="Kords" className="h-12" />
+          <div className="mt-1 text-gray-600">{t.address}</div>
         </div>
         <div className="text-end">
           <div className="text-2xl font-bold">{t.title}</div>
@@ -94,6 +95,29 @@ export const QuotationPreview = ({
           ))}
         </tbody>
         <tfoot>
+          {discount > 0 ? (
+            <>
+              <tr>
+                <td colSpan={3} className="p-2 pt-4 text-end">
+                  {t.subtotal}
+                </td>
+                <td className="p-2 pt-4 text-end">
+                  {formatMoney(subtotal, quote.currency, lang)}
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={3} className="p-2 text-end">
+                  {t.discount}
+                  {quote.discount_type === "percent"
+                    ? ` (${quote.discount_value}%)`
+                    : ""}
+                </td>
+                <td className="p-2 text-end">
+                  - {formatMoney(discount, quote.currency, lang)}
+                </td>
+              </tr>
+            </>
+          ) : null}
           <tr>
             <td colSpan={3} className="p-2 pt-4 text-end font-semibold">
               {t.total}

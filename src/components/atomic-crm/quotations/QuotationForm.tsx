@@ -26,8 +26,8 @@ import { useConfigurationContext } from "../root/ConfigurationContext";
 import { QuotationPreview } from "./QuotationPreview";
 import {
   CURRENCIES,
+  computeTotals,
   formatMoney,
-  itemsTotal,
   quoteStatusLabel,
   type Product,
   type Quotation,
@@ -67,6 +67,8 @@ export const QuotationForm = () => {
     currency: CURRENCIES.includes(defaultCurrency) ? defaultCurrency : "EGP",
     language: "en",
     items: [{ description: "", quantity: 1, unit_price: 0 }],
+    discount_type: "amount",
+    discount_value: 0,
     notes: "",
     terms: "",
   });
@@ -137,7 +139,11 @@ export const QuotationForm = () => {
     });
   };
 
-  const total = itemsTotal(draft.items);
+  const { subtotal, discount, total } = computeTotals(
+    draft.items,
+    draft.discount_type,
+    draft.discount_value,
+  );
 
   const save = (status?: QuoteStatus) => {
     if (!draft.company_id)
@@ -152,7 +158,8 @@ export const QuotationForm = () => {
       ...draft,
       ...(status ? { status } : {}),
       items,
-      total: itemsTotal(items),
+      total: computeTotals(items, draft.discount_type, draft.discount_value)
+        .total,
     };
     const done = {
       onError: (e: any) => {
@@ -399,7 +406,9 @@ export const QuotationForm = () => {
                   />
                   <div className="flex items-end gap-2">
                     <div className="flex flex-1 flex-col gap-1">
-                      <span className="text-xs text-muted-foreground">Qty</span>
+                      <span className="text-xs text-muted-foreground">
+                        Users
+                      </span>
                       <Input
                         type="number"
                         min={0}
@@ -453,8 +462,44 @@ export const QuotationForm = () => {
                   <Plus className="h-4 w-4" />
                   Add line
                 </Button>
-                <div className="text-lg font-semibold">
-                  {formatMoney(total, draft.currency)}
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+                <div className="flex items-center gap-2">
+                  <Label>Discount</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    className="w-28"
+                    value={draft.discount_value}
+                    onChange={(e) =>
+                      set({ discount_value: Number(e.target.value) })
+                    }
+                  />
+                  <Select
+                    value={draft.discount_type}
+                    onValueChange={(v) =>
+                      set({ discount_type: v as "amount" | "percent" })
+                    }
+                  >
+                    <SelectTrigger className="w-24">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="amount">{draft.currency}</SelectItem>
+                      <SelectItem value="percent">%</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="text-right">
+                  {discount > 0 ? (
+                    <div className="text-sm text-muted-foreground">
+                      {formatMoney(subtotal, draft.currency)} −{" "}
+                      {formatMoney(discount, draft.currency)}
+                    </div>
+                  ) : null}
+                  <div className="text-lg font-semibold">
+                    {formatMoney(total, draft.currency)}
+                  </div>
                 </div>
               </div>
             </CardContent>
