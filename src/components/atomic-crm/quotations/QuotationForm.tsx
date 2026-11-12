@@ -227,6 +227,25 @@ export const QuotationForm = () => {
     }
   };
 
+  // The browser uses the page title as the PDF file name
+  useEffect(() => {
+    const original = document.title;
+    const before = () => {
+      document.title = ["Kords Quotation", draft.number, company?.name]
+        .filter(Boolean)
+        .join(" - ");
+    };
+    const after = () => {
+      document.title = original;
+    };
+    window.addEventListener("beforeprint", before);
+    window.addEventListener("afterprint", after);
+    return () => {
+      window.removeEventListener("beforeprint", before);
+      window.removeEventListener("afterprint", after);
+    };
+  }, [draft.number, company?.name]);
+
   const field = "flex flex-col gap-1.5";
   return (
     <div className="mt-2 flex flex-col gap-4">
