@@ -15,15 +15,20 @@ import { Textarea } from "@/components/ui/textarea";
 
 import type { Product } from "./quoteUtils";
 
-type PriceKey = "price_monthly" | "price_quarterly" | "price_biannual";
+type PriceKey =
+  | "price_monthly"
+  | "price_quarterly"
+  | "price_biannual"
+  | "price_annual";
 const PRICES: { key: PriceKey; label: string }[] = [
   { key: "price_monthly", label: "Monthly" },
   { key: "price_quarterly", label: "Quarterly" },
   { key: "price_biannual", label: "Bi-annual" },
+  { key: "price_annual", label: "Annual" },
 ];
 
 const GRID =
-  "grid items-start gap-2 md:grid-cols-[1fr_1.5fr_110px_110px_110px_auto]";
+  "grid items-start gap-2 md:grid-cols-[1fr_1.4fr_100px_100px_100px_100px_auto]";
 
 // Catalog of products / services with a price for each billing period
 export const ProductList = () => {
@@ -42,6 +47,7 @@ export const ProductList = () => {
     price_monthly: "",
     price_quarterly: "",
     price_biannual: "",
+    price_annual: "",
   });
 
   const add = () => {
@@ -56,6 +62,7 @@ export const ProductList = () => {
           price_monthly: Number(draft.price_monthly) || 0,
           price_quarterly: Number(draft.price_quarterly) || 0,
           price_biannual: Number(draft.price_biannual) || 0,
+          price_annual: Number(draft.price_annual) || 0,
         },
       },
       {
@@ -66,6 +73,7 @@ export const ProductList = () => {
             price_monthly: "",
             price_quarterly: "",
             price_biannual: "",
+            price_annual: "",
           });
           refetch();
         },

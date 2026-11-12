@@ -392,6 +392,7 @@ create table public.products (
     price_monthly numeric not null default 0,
     price_quarterly numeric not null default 0,
     price_biannual numeric not null default 0,
+    price_annual numeric not null default 0,
     active boolean not null default true
 );
 

@@ -1,6 +1,6 @@
 export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected";
 
-export type Period = "monthly" | "quarterly" | "biannual";
+export type Period = "monthly" | "quarterly" | "biannual" | "annual";
 
 export type QuoteItem = {
   description: string;
@@ -38,6 +38,7 @@ export type Product = {
   price_monthly: number;
   price_quarterly: number;
   price_biannual: number;
+  price_annual: number;
   active: boolean;
 };
 
@@ -45,6 +46,7 @@ export const periodLabel: Record<Period, string> = {
   monthly: "Monthly",
   quarterly: "Quarterly",
   biannual: "Bi-annual",
+  annual: "Annual",
 };
 
 export const periodPrice = (p: Product, period: Period) =>
@@ -53,7 +55,9 @@ export const periodPrice = (p: Product, period: Period) =>
       ? p.price_monthly
       : period === "quarterly"
         ? p.price_quarterly
-        : p.price_biannual,
+        : period === "biannual"
+          ? p.price_biannual
+          : p.price_annual,
   );
 
 export const quoteStatusLabel: Record<QuoteStatus, string> = {
@@ -85,8 +89,8 @@ export const computeTotals = (
   return { subtotal, discount, total: subtotal - discount };
 };
 
-export const formatMoney = (value: number, currency: string, lang = "en") =>
-  `${new Intl.NumberFormat(lang === "ar" ? "ar-EG" : "en-US", {
+export const formatMoney = (value: number, currency: string, _lang = "en") =>
+  `${new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value)} ${currency}`;
@@ -130,7 +134,12 @@ export const printLabels = {
     subtotal: "المجموع",
     discount: "الخصم",
     total: "الإجمالي الكلي",
-    periods: { monthly: "شهري", quarterly: "ربع سنوي", biannual: "نصف سنوي" },
+    periods: {
+      monthly: "شهري",
+      quarterly: "ربع سنوي",
+      biannual: "نصف سنوي",
+      annual: "سنوي",
+    },
     address: "مدينة نصر، القاهرة، مصر",
     notes: "ملاحظات",
     terms: "الشروط والأحكام",
