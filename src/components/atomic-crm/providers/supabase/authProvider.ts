@@ -22,7 +22,9 @@ const getBaseAuthProvider = () =>
   });
 
 // To speed up checks, we cache the initialization state
-// and the current sale in the local storage. They are cleared on logout.
+// and the current sale in the local storage. Only the current sale is cleared
+// on logout: once the CRM is set up it stays set up, and keeping that answer
+// lets the login page show instantly instead of waiting for the database.
 const IS_INITIALIZED_CACHE_KEY = "RaStore.auth.is_initialized";
 const CURRENT_SALE_CACHE_KEY = "RaStore.auth.current_sale";
 
@@ -84,7 +86,6 @@ const getSale = async () => {
 
 function clearCache() {
   const storage = getLocalStorage();
-  storage?.removeItem(IS_INITIALIZED_CACHE_KEY);
   storage?.removeItem(CURRENT_SALE_CACHE_KEY);
 }
 
