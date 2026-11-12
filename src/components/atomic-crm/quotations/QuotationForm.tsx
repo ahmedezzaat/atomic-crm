@@ -31,6 +31,7 @@ import {
   quoteStatusLabel,
   periodLabel,
   periodPrice,
+  periodPrices,
   type Period,
   type Product,
   type Quotation,
@@ -147,7 +148,11 @@ export const QuotationForm = () => {
 
   const pickProduct = (i: number, value: string) => {
     if (value === CUSTOM) {
-      setItem(i, { product_id: undefined, period: undefined });
+      setItem(i, {
+        product_id: undefined,
+        period: undefined,
+        prices: undefined,
+      });
       return;
     }
     const p = products.find((x) => String(x.id) === value);
@@ -155,6 +160,7 @@ export const QuotationForm = () => {
     const period = draft.items[i].period ?? "monthly";
     setItem(i, {
       product_id: p.id,
+      prices: periodPrices(p),
       period,
       description: p.description ? `${p.name}\n${p.description}` : p.name,
       unit_price: periodPrice(p, period),

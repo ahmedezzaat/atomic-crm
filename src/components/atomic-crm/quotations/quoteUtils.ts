@@ -8,6 +8,7 @@ export type QuoteItem = {
   unit_price: number;
   product_id?: number;
   period?: Period;
+  prices?: Record<Period, number>;
 };
 
 export type Quotation = {
@@ -48,6 +49,15 @@ export const periodLabel: Record<Period, string> = {
   biannual: "Bi-annual",
   annual: "Annual",
 };
+
+export const PERIODS: Period[] = ["monthly", "quarterly", "biannual", "annual"];
+
+export const periodPrices = (p: Product): Record<Period, number> => ({
+  monthly: Number(p.price_monthly),
+  quarterly: Number(p.price_quarterly),
+  biannual: Number(p.price_biannual),
+  annual: Number(p.price_annual),
+});
 
 export const periodPrice = (p: Product, period: Period) =>
   Number(
@@ -115,7 +125,11 @@ export const printLabels = {
       monthly: "Monthly",
       quarterly: "Quarterly",
       biannual: "Bi-annual",
+      annual: "Annual",
     },
+    options: "Subscription options",
+    perUser: "per user",
+    forUsers: "Total",
     address: "Nasr City, Cairo, Egypt",
     notes: "Notes",
     terms: "Terms & conditions",
@@ -140,6 +154,9 @@ export const printLabels = {
       biannual: "نصف سنوي",
       annual: "سنوي",
     },
+    options: "خيارات الاشتراك",
+    perUser: "للمستخدم",
+    forUsers: "الإجمالي",
     address: "مدينة نصر، القاهرة، مصر",
     notes: "ملاحظات",
     terms: "الشروط والأحكام",

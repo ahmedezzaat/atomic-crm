@@ -1,6 +1,7 @@
 import logo from "./kords-logo.png";
 import {
   computeTotals,
+  PERIODS,
   formatMoney,
   printLabels,
   type Quotation,
@@ -151,6 +152,55 @@ export const QuotationPreview = ({
           </tr>
         </tfoot>
       </table>
+
+      {quote.items.some((it) => it.prices) ? (
+        <div className="mt-6">
+          <div className="mb-1 font-semibold">{t.options}</div>
+          <table className="w-full border-collapse text-center">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="p-2 text-start">{t.description}</th>
+                {PERIODS.map((k) => (
+                  <th key={k} className="p-2">
+                    {t.periods[k]}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {quote.items
+                .filter((it) => it.prices)
+                .map((it, i) => (
+                  <tr key={i} className="border-b align-top">
+                    <td className="p-2 text-start font-bold">
+                      {it.description.split("\n")[0]}
+                      <div className="text-xs font-normal text-gray-500">
+                        {t.perUser} / {t.forUsers} ({it.quantity})
+                      </div>
+                    </td>
+                    {PERIODS.map((k) => (
+                      <td
+                        key={k}
+                        className={`p-2 ${it.period === k ? "bg-gray-100 font-semibold" : ""}`}
+                      >
+                        <div>
+                          {formatMoney(it.prices![k], quote.currency, lang)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {formatMoney(
+                            it.prices![k] * (Number(it.quantity) || 0),
+                            quote.currency,
+                            lang,
+                          )}
+                        </div>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
 
       {quote.notes ? (
         <div className="mt-6">
