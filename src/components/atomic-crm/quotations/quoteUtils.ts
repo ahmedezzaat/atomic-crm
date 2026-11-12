@@ -1,0 +1,88 @@
+export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected";
+
+export type QuoteItem = {
+  description: string;
+  quantity: number;
+  unit_price: number;
+};
+
+export type Quotation = {
+  id: number;
+  number: string;
+  company_id: number;
+  contact_id: number | null;
+  sales_id: number | null;
+  status: QuoteStatus;
+  issue_date: string;
+  valid_until: string | null;
+  currency: string;
+  language: "en" | "ar";
+  items: QuoteItem[];
+  total: number;
+  notes: string;
+  terms: string;
+  created_at: string;
+};
+
+export type Product = {
+  id: number;
+  name: string;
+  description: string;
+  unit_price: number;
+  active: boolean;
+};
+
+export const quoteStatusLabel: Record<QuoteStatus, string> = {
+  draft: "Draft",
+  sent: "Sent",
+  accepted: "Accepted",
+  rejected: "Rejected",
+};
+
+export const CURRENCIES = ["EGP", "USD", "SAR", "AED", "EUR"];
+
+export const itemsTotal = (items: QuoteItem[]) =>
+  items.reduce(
+    (sum, i) => sum + (Number(i.quantity) || 0) * (Number(i.unit_price) || 0),
+    0,
+  );
+
+export const formatMoney = (value: number, currency: string, lang = "en") =>
+  `${new Intl.NumberFormat(lang === "ar" ? "ar-EG" : "en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)} ${currency}`;
+
+// Wording on the printed page
+export const printLabels = {
+  en: {
+    title: "Quotation",
+    number: "No.",
+    date: "Date",
+    validUntil: "Valid until",
+    to: "Quotation for",
+    attn: "Attention",
+    description: "Description",
+    qty: "Qty",
+    price: "Unit price",
+    amount: "Amount",
+    total: "Total",
+    notes: "Notes",
+    terms: "Terms & conditions",
+  },
+  ar: {
+    title: "عرض سعر",
+    number: "رقم",
+    date: "التاريخ",
+    validUntil: "صالح حتى",
+    to: "مقدم إلى",
+    attn: "عناية",
+    description: "البيان",
+    qty: "الكمية",
+    price: "سعر الوحدة",
+    amount: "الإجمالي",
+    total: "الإجمالي الكلي",
+    notes: "ملاحظات",
+    terms: "الشروط والأحكام",
+  },
+} as const;

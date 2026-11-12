@@ -216,3 +216,13 @@ grant all on table public.wa_campaigns_summary to service_role;
 grant select on table public.lead_searches to authenticated;
 grant all on table public.lead_searches to service_role;
 grant all on sequence public.lead_searches_id_seq to service_role;
+
+grant all on table public.products to authenticated;
+grant all on table public.products to service_role;
+grant all on sequence public.products_id_seq to authenticated;
+grant all on sequence public.products_id_seq to service_role;
+grant all on table public.quotations to authenticated;
+grant all on table public.quotations to service_role;
+grant all on sequence public.quotations_id_seq to authenticated;
+grant all on sequence public.quotations_id_seq to service_role;
+grant usage on sequence public.quotation_number_seq to authenticated, service_role;

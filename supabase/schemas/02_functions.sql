@@ -500,3 +500,19 @@ begin
 end;
 $$;
 revoke all on function public.run_wa_auto_campaigns() from public, anon, authenticated;
+
+create or replace function public.set_quotation_number() returns trigger
+    language plpgsql
+    set search_path = public
+as $$
+begin
+    if coalesce(new.number, '') = '' then
+        new.number := 'Q-' || to_char(now(), 'YYYY') || '-' || lpad(nextval('public.quotation_number_seq')::text, 4, '0');
+    end if;
+    return new;
+end;
+$$;
+
+create trigger set_quotation_number before insert on public.quotations
+    for each row execute function public.set_quotation_number();
+

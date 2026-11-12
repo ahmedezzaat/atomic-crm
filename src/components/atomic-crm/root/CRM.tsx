@@ -28,6 +28,7 @@ import { GuestCallPage } from "../calls/GuestCallPage";
 import { LeadForm } from "../leads/LeadForm";
 import { WhatsAppInbox } from "../whatsapp/WhatsAppInbox";
 import { WaCampaignList } from "../whatsapp/WaCampaignList";
+import { ProductList, QuotationForm, QuotationList } from "../quotations";
 import { WaCampaignForm } from "../whatsapp/WaCampaignForm";
 import { FindLeads } from "../leads/FindLeads";
 import { SmsCampaignList } from "../sms/SmsCampaignList";
@@ -302,6 +303,10 @@ const DesktopAdmin = (
         <Route path="/wa-campaigns" element={<WaCampaignList />} />
         <Route path="/wa-campaigns/new" element={<WaCampaignForm />} />
         <Route path="/wa-campaigns/:id" element={<WaCampaignForm />} />
+        <Route path="/quotations" element={<QuotationList />} />
+        <Route path="/quotations/new" element={<QuotationForm />} />
+        <Route path="/quotations/products" element={<ProductList />} />
+        <Route path="/quotations/:id" element={<QuotationForm />} />
         <Route path="/sms" element={<SmsCampaignList />} />
         <Route path="/sms/new" element={<SmsCampaignForm />} />
         <Route path="/sms/:id" element={<SmsCampaignForm />} />

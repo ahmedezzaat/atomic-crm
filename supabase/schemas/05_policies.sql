@@ -115,3 +115,16 @@ create policy "WA Campaign Delete Policy" on public.wa_campaigns for delete to a
 
 alter table public.lead_searches enable row level security;
 create policy "Enable read access for authenticated users" on public.lead_searches for select to authenticated using (true);
+
+alter table public.products enable row level security;
+create policy "Enable read access for authenticated users" on public.products for select to authenticated using (true);
+create policy "Enable insert for authenticated users only" on public.products for insert to authenticated with check (true);
+create policy "Product Update Policy" on public.products for update to authenticated using (true);
+create policy "Product Delete Policy" on public.products for delete to authenticated using (true);
+
+alter table public.quotations enable row level security;
+create policy "Enable read access for authenticated users" on public.quotations for select to authenticated using (true);
+create policy "Enable insert for authenticated users only" on public.quotations for insert to authenticated with check (true);
+create policy "Quotation Update Policy" on public.quotations for update to authenticated using (true);
+create policy "Quotation Delete Policy" on public.quotations for delete to authenticated using (true);
+

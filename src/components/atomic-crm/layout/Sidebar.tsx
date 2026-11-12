@@ -6,6 +6,7 @@ import {
   Inbox,
   LayoutDashboard,
   Megaphone,
+  FileText,
   MessageCircle,
   MessageSquareText,
   Phone,
@@ -126,6 +127,7 @@ export const Sidebar = () => {
           label={translate("resources.deals.name", { smart_count: 2 })}
           icon={Handshake}
         />
+        <NavItem to="/quotations" label="Quotations" icon={FileText} />
         <NavItem
           to="/customers"
           label={translate("resources.customers.name", {

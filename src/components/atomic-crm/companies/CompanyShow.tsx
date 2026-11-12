@@ -4,7 +4,7 @@ import { SortButton } from "@/components/admin/sort-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquareText, Plus, UserPlus } from "lucide-react";
+import { FileText, MessageSquareText, Plus, UserPlus } from "lucide-react";
 import {
   RecordContextProvider,
   ShowBase,
@@ -140,6 +140,12 @@ const CompanyShowContent = () => {
               >
                 <MessageSquareText className="h-4 w-4" />
                 Send SMS
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to={`/quotations/new?company_id=${record.id}`}>
+                  <FileText className="h-4 w-4" />
+                  Quotation
+                </Link>
               </Button>
               <StartCallButton company={record} />
               <EnrichButton company={record} />
