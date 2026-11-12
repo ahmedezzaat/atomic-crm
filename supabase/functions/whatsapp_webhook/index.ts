@@ -68,15 +68,69 @@ async function handleEcho(echo: any) {
   }
 }
 
+/** What a message says, in words the Inbox can show. */
+function messageText(message: any): string {
+  const caption = (media: any) =>
+    media?.caption ? `\n${String(media.caption)}` : "";
+  switch (message.type) {
+    case "text":
+      return String(message.text?.body ?? "");
+    case "button":
+      return String(message.button?.text ?? "");
+    case "interactive":
+      return String(
+        message.interactive?.button_reply?.title ??
+          message.interactive?.list_reply?.title ??
+          "[interactive]",
+      );
+    case "contacts": {
+      // a shared contact card: name, numbers, emails
+      const cards = (message.contacts ?? []).map((c: any) => {
+        const name =
+          c.name?.formatted_name ||
+          [c.name?.first_name, c.name?.last_name].filter(Boolean).join(" ") ||
+          "Contact";
+        const phones = (c.phones ?? []).map(
+          (p: any) => p.phone || (p.wa_id ? `+${p.wa_id}` : ""),
+        );
+        const emails = (c.emails ?? []).map((e: any) => e.email);
+        const org = c.org?.company ? [c.org.company] : [];
+        return [`👤 ${name}`, ...org, ...phones, ...emails]
+          .filter(Boolean)
+          .join("\n");
+      });
+      return cards.length ? cards.join("\n\n") : "[contact]";
+    }
+    case "location": {
+      const { latitude, longitude, name, address } = message.location ?? {};
+      return [
+        "📍 Location",
+        name,
+        address,
+        latitude != null && longitude != null
+          ? `https://maps.google.com/?q=${latitude},${longitude}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+    }
+    case "reaction":
+      return `Reacted ${message.reaction?.emoji ?? ""}`.trim();
+    case "image":
+    case "video":
+    case "document":
+    case "audio":
+    case "sticker":
+      return `[${message.type}]${caption(message[message.type])}`;
+    default:
+      return `[${message.type}]`;
+  }
+}
+
 async function handleMessage(message: any) {
   const phone = normalizePhone(message.from);
   if (!phone) return;
-  const text =
-    message.type === "text"
-      ? String(message.text?.body ?? "")
-      : message.type === "button"
-        ? String(message.button?.text ?? "")
-        : `[${message.type}]`;
+  const text = messageText(message);
 
   // The customer is matched to a company by phone number
   const { data: companies } = await supabaseAdmin
