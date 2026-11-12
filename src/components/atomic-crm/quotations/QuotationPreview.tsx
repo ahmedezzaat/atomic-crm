@@ -25,13 +25,19 @@ export const QuotationPreview = ({
   const lang = quote.language;
   return (
     <div
-      className="quote-print-area mx-auto w-full max-w-[800px] bg-white p-10 text-[13px] text-black shadow-sm"
+      className="quote-print-area mx-auto min-h-[297mm] w-[210mm] bg-white p-[14mm] text-[13px] text-black shadow-sm"
       dir={lang === "ar" ? "rtl" : "ltr"}
     >
       <div className="flex items-start justify-between border-b pb-5">
         <div>
           <img src={logo} alt="Kords" className="h-12" />
-          <div className="mt-1 text-gray-600">{t.address}</div>
+          <div className="mt-1 text-sm font-medium text-gray-800">
+            Real Estate Operating System
+          </div>
+          <div className="text-gray-600">{t.address}</div>
+          <div className="text-gray-600" dir="ltr">
+            info@kords.ai
+          </div>
         </div>
         <div className="text-end">
           <div className="text-2xl font-bold">{t.title}</div>

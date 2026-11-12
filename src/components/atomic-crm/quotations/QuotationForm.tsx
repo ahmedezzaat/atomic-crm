@@ -7,7 +7,7 @@ import {
   useNotify,
   useUpdate,
 } from "ra-core";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,6 +56,18 @@ export const QuotationForm = () => {
   const [update] = useUpdate();
   const [busy, setBusy] = useState(false);
   const [companySearch, setCompanySearch] = useState("");
+  // Shrink the A4 page to fit the screen; printing always uses full size
+  const previewBox = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+  useEffect(() => {
+    const el = previewBox.current;
+    if (!el) return;
+    const fit = () => setZoom(Math.min(1, el.clientWidth / 794));
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const [draft, setDraft] = useState<Draft>({
     number: "",
@@ -200,10 +212,12 @@ export const QuotationForm = () => {
   const field = "flex flex-col gap-1.5";
   return (
     <div className="mt-2 flex flex-col gap-4">
-      <style>{`@media print {
+      <style>{`@page { size: A4; margin: 0; }
+      @media print {
         body * { visibility: hidden !important; }
         .quote-print-area, .quote-print-area * { visibility: visible !important; }
-        .quote-print-area { position: absolute; inset: 0; box-shadow: none !important; max-width: none !important; }
+        .quote-zoom { zoom: 1 !important; }
+        .quote-print-area { position: absolute; top: 0; left: 0; width: 210mm !important; min-height: 296mm; margin: 0 !important; box-shadow: none !important; }
       }`}</style>
       <div className="flex items-center justify-between gap-2 print:hidden">
         <div className="flex items-center gap-2">
@@ -534,12 +548,14 @@ export const QuotationForm = () => {
           </Card>
         </div>
 
-        <div className="overflow-auto">
-          <QuotationPreview
-            quote={{ ...draft, total }}
-            companyName={company?.name ?? ""}
-            contactName={contactName}
-          />
+        <div ref={previewBox} className="print:overflow-visible">
+          <div className="quote-zoom" style={{ zoom }}>
+            <QuotationPreview
+              quote={{ ...draft, total }}
+              companyName={company?.name ?? ""}
+              contactName={contactName}
+            />
+          </div>
         </div>
       </div>
     </div>
