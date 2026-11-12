@@ -42,7 +42,7 @@ export const QuotationPreview = ({
         <div className="text-end">
           <div className="text-2xl font-bold">{t.title}</div>
           <div className="text-gray-600">
-            {t.number} {quote.number || "—"}
+            {t.number} {quote.number || (lang === "ar" ? "تلقائي" : "Auto")}
           </div>
         </div>
       </div>
@@ -88,6 +88,11 @@ export const QuotationPreview = ({
                 {item.description.includes("\n")
                   ? `\n${item.description.split("\n").slice(1).join("\n")}`
                   : ""}
+                {item.period ? (
+                  <div className="text-xs text-gray-500">
+                    {t.periods[item.period]}
+                  </div>
+                ) : null}
               </td>
               <td className="p-2 text-end">{item.quantity}</td>
               <td className="p-2 text-end">

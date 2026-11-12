@@ -15,7 +15,17 @@ import { Textarea } from "@/components/ui/textarea";
 
 import type { Product } from "./quoteUtils";
 
-// Catalog of products / services with default prices
+type PriceKey = "price_monthly" | "price_quarterly" | "price_biannual";
+const PRICES: { key: PriceKey; label: string }[] = [
+  { key: "price_monthly", label: "Monthly" },
+  { key: "price_quarterly", label: "Quarterly" },
+  { key: "price_biannual", label: "Bi-annual" },
+];
+
+const GRID =
+  "grid items-start gap-2 md:grid-cols-[1fr_1.5fr_110px_110px_110px_auto]";
+
+// Catalog of products / services with a price for each billing period
 export const ProductList = () => {
   const navigate = useNavigate();
   const notify = useNotify();
@@ -29,7 +39,9 @@ export const ProductList = () => {
   const [draft, setDraft] = useState({
     name: "",
     description: "",
-    unit_price: "",
+    price_monthly: "",
+    price_quarterly: "",
+    price_biannual: "",
   });
 
   const add = () => {
@@ -41,12 +53,20 @@ export const ProductList = () => {
         data: {
           name: draft.name.trim(),
           description: draft.description.trim(),
-          unit_price: Number(draft.unit_price) || 0,
+          price_monthly: Number(draft.price_monthly) || 0,
+          price_quarterly: Number(draft.price_quarterly) || 0,
+          price_biannual: Number(draft.price_biannual) || 0,
         },
       },
       {
         onSuccess: () => {
-          setDraft({ name: "", description: "", unit_price: "" });
+          setDraft({
+            name: "",
+            description: "",
+            price_monthly: "",
+            price_quarterly: "",
+            price_biannual: "",
+          });
           refetch();
         },
         onError: (e: any) =>
@@ -78,10 +98,11 @@ export const ProductList = () => {
       <Card>
         <CardContent className="flex flex-col gap-4">
           <p className="text-sm text-muted-foreground">
-            What you sell, with a default price. Pick them when making a
-            quotation; you can still change the text and price on each one.
+            What you sell, with a price for each billing period. On a quotation
+            you pick the product and the period, and the matching price fills in
+            (you can still change it).
           </p>
-          <div className="grid gap-2 md:grid-cols-[1fr_2fr_140px_auto]">
+          <div className={GRID}>
             <Input
               placeholder="Name"
               value={draft.name}
@@ -94,15 +115,16 @@ export const ProductList = () => {
                 setDraft({ ...draft, description: e.target.value })
               }
             />
-            <Input
-              type="number"
-              min={0}
-              placeholder="Price"
-              value={draft.unit_price}
-              onChange={(e) =>
-                setDraft({ ...draft, unit_price: e.target.value })
-              }
-            />
+            {PRICES.map(({ key, label }) => (
+              <Input
+                key={key}
+                type="number"
+                min={0}
+                placeholder={label}
+                value={draft[key]}
+                onChange={(e) => setDraft({ ...draft, [key]: e.target.value })}
+              />
+            ))}
             <Button onClick={add}>
               <Plus className="h-4 w-4" />
               Add
@@ -115,11 +137,16 @@ export const ProductList = () => {
             </p>
           ) : (
             <div className="flex flex-col gap-2">
+              <div className={`${GRID} text-xs text-muted-foreground`}>
+                <span>Name</span>
+                <span>Description</span>
+                {PRICES.map(({ key, label }) => (
+                  <span key={key}>{label}</span>
+                ))}
+                <span />
+              </div>
               {products.map((p) => (
-                <div
-                  key={p.id}
-                  className="grid items-start gap-2 md:grid-cols-[1fr_2fr_140px_auto]"
-                >
+                <div key={p.id} className={GRID}>
                   <Input
                     defaultValue={p.name}
                     onBlur={(e) =>
@@ -135,15 +162,18 @@ export const ProductList = () => {
                       save(p, { description: e.target.value })
                     }
                   />
-                  <Input
-                    type="number"
-                    min={0}
-                    defaultValue={p.unit_price}
-                    onBlur={(e) =>
-                      Number(e.target.value) !== Number(p.unit_price) &&
-                      save(p, { unit_price: Number(e.target.value) || 0 })
-                    }
-                  />
+                  {PRICES.map(({ key }) => (
+                    <Input
+                      key={key}
+                      type="number"
+                      min={0}
+                      defaultValue={p[key]}
+                      onBlur={(e) =>
+                        Number(e.target.value) !== Number(p[key]) &&
+                        save(p, { [key]: Number(e.target.value) || 0 })
+                      }
+                    />
+                  ))}
                   <Button
                     size="icon"
                     variant="ghost"

@@ -1,9 +1,13 @@
 export type QuoteStatus = "draft" | "sent" | "accepted" | "rejected";
 
+export type Period = "monthly" | "quarterly" | "biannual";
+
 export type QuoteItem = {
   description: string;
   quantity: number;
   unit_price: number;
+  product_id?: number;
+  period?: Period;
 };
 
 export type Quotation = {
@@ -31,9 +35,26 @@ export type Product = {
   id: number;
   name: string;
   description: string;
-  unit_price: number;
+  price_monthly: number;
+  price_quarterly: number;
+  price_biannual: number;
   active: boolean;
 };
+
+export const periodLabel: Record<Period, string> = {
+  monthly: "Monthly",
+  quarterly: "Quarterly",
+  biannual: "Bi-annual",
+};
+
+export const periodPrice = (p: Product, period: Period) =>
+  Number(
+    period === "monthly"
+      ? p.price_monthly
+      : period === "quarterly"
+        ? p.price_quarterly
+        : p.price_biannual,
+  );
 
 export const quoteStatusLabel: Record<QuoteStatus, string> = {
   draft: "Draft",
@@ -86,6 +107,11 @@ export const printLabels = {
     subtotal: "Subtotal",
     discount: "Discount",
     total: "Total",
+    periods: {
+      monthly: "Monthly",
+      quarterly: "Quarterly",
+      biannual: "Bi-annual",
+    },
     address: "Nasr City, Cairo, Egypt",
     notes: "Notes",
     terms: "Terms & conditions",
@@ -104,6 +130,7 @@ export const printLabels = {
     subtotal: "المجموع",
     discount: "الخصم",
     total: "الإجمالي الكلي",
+    periods: { monthly: "شهري", quarterly: "ربع سنوي", biannual: "نصف سنوي" },
     address: "مدينة نصر، القاهرة، مصر",
     notes: "ملاحظات",
     terms: "الشروط والأحكام",

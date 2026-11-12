@@ -389,7 +389,9 @@ create table public.products (
     created_at timestamp with time zone not null default now(),
     name text not null,
     description text not null default '',
-    unit_price numeric not null default 0,
+    price_monthly numeric not null default 0,
+    price_quarterly numeric not null default 0,
+    price_biannual numeric not null default 0,
     active boolean not null default true
 );
 

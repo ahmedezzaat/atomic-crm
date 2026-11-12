@@ -29,6 +29,9 @@ import {
   computeTotals,
   formatMoney,
   quoteStatusLabel,
+  periodLabel,
+  periodPrice,
+  type Period,
   type Product,
   type Quotation,
   type QuoteItem,
@@ -143,12 +146,27 @@ export const QuotationForm = () => {
     });
 
   const pickProduct = (i: number, value: string) => {
-    if (value === CUSTOM) return;
+    if (value === CUSTOM) {
+      setItem(i, { product_id: undefined, period: undefined });
+      return;
+    }
     const p = products.find((x) => String(x.id) === value);
     if (!p) return;
+    const period = draft.items[i].period ?? "monthly";
     setItem(i, {
+      product_id: p.id,
+      period,
       description: p.description ? `${p.name}\n${p.description}` : p.name,
-      unit_price: Number(p.unit_price),
+      unit_price: periodPrice(p, period),
+    });
+  };
+
+  const pickPeriod = (i: number, value: string) => {
+    const period = value === CUSTOM ? undefined : (value as Period);
+    const p = products.find((x) => x.id === draft.items[i].product_id);
+    setItem(i, {
+      period,
+      ...(p && period ? { unit_price: periodPrice(p, period) } : {}),
     });
   };
 
@@ -392,25 +410,42 @@ export const QuotationForm = () => {
                   key={i}
                   className="flex flex-col gap-2 rounded-md border p-3"
                 >
-                  <Select
-                    value={CUSTOM}
-                    onValueChange={(v) => pickProduct(i, v)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pick from products" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={CUSTOM}>
-                        Custom line / pick a product…
-                      </SelectItem>
-                      {products.map((p) => (
-                        <SelectItem key={p.id} value={String(p.id)}>
-                          {p.name} —{" "}
-                          {formatMoney(Number(p.unit_price), draft.currency)}
+                  <div className="grid gap-2 md:grid-cols-[1fr_150px]">
+                    <Select
+                      value={it.product_id ? String(it.product_id) : CUSTOM}
+                      onValueChange={(v) => pickProduct(i, v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pick from products" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={CUSTOM}>
+                          Custom line / pick a product…
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        {products.map((p) => (
+                          <SelectItem key={p.id} value={String(p.id)}>
+                            {p.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={it.period ?? CUSTOM}
+                      onValueChange={(v) => pickPeriod(i, v)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={CUSTOM}>No period</SelectItem>
+                        {(Object.keys(periodLabel) as Period[]).map((k) => (
+                          <SelectItem key={k} value={k}>
+                            {periodLabel[k]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <Textarea
                     rows={2}
                     placeholder="Description"
