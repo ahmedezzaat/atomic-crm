@@ -69,6 +69,7 @@ export const QuotationForm = () => {
     items: [{ description: "", quantity: 1, unit_price: 0 }],
     discount_type: "amount",
     discount_value: 0,
+    discount_note: "",
     notes: "",
     terms: "",
   });
@@ -502,6 +503,11 @@ export const QuotationForm = () => {
                   </div>
                 </div>
               </div>
+              <Input
+                placeholder="Discount note (shown on the quotation), e.g. Launch offer"
+                value={draft.discount_note}
+                onChange={(e) => set({ discount_note: e.target.value })}
+              />
             </CardContent>
           </Card>
 

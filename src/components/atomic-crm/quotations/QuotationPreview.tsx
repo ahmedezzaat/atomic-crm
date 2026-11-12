@@ -75,7 +75,14 @@ export const QuotationPreview = ({
         <tbody>
           {quote.items.map((item, i) => (
             <tr key={i} className="border-b align-top">
-              <td className="whitespace-pre-wrap p-2">{item.description}</td>
+              <td className="whitespace-pre-wrap p-2">
+                <span className="font-bold">
+                  {item.description.split("\n")[0]}
+                </span>
+                {item.description.includes("\n")
+                  ? `\n${item.description.split("\n").slice(1).join("\n")}`
+                  : ""}
+              </td>
               <td className="p-2 text-end">{item.quantity}</td>
               <td className="p-2 text-end">
                 {formatMoney(
@@ -111,6 +118,11 @@ export const QuotationPreview = ({
                   {quote.discount_type === "percent"
                     ? ` (${quote.discount_value}%)`
                     : ""}
+                  {quote.discount_note ? (
+                    <div className="text-xs text-gray-500">
+                      {quote.discount_note}
+                    </div>
+                  ) : null}
                 </td>
                 <td className="p-2 text-end">
                   - {formatMoney(discount, quote.currency, lang)}

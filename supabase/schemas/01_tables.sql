@@ -411,6 +411,7 @@ create table public.quotations (
     total numeric not null default 0,
     discount_type text not null default 'amount',
     discount_value numeric not null default 0,
+    discount_note text not null default '',
     notes text not null default '',
     terms text not null default '',
     constraint quotations_discount_type_check check (discount_type in ('amount', 'percent')),

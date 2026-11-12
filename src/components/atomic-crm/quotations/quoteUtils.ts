@@ -21,6 +21,7 @@ export type Quotation = {
   total: number;
   discount_type: "amount" | "percent";
   discount_value: number;
+  discount_note: string;
   notes: string;
   terms: string;
   created_at: string;
