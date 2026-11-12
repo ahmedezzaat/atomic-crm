@@ -80,7 +80,7 @@ export const printLabels = {
     to: "Quotation for",
     attn: "Attention",
     description: "Description",
-    qty: "Qty",
+    qty: "Users",
     price: "Unit price",
     amount: "Amount",
     subtotal: "Subtotal",
