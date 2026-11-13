@@ -52,6 +52,7 @@ export const WhatsAppInbox = () => {
   const [newName, setNewName] = useState("");
   const [busy, setBusy] = useState(false);
   const [onlyUnread, setOnlyUnread] = useState(false);
+  const [tab, setTab] = useState<"replies" | "sent">("replies");
 
   const { data: messages = [], refetch } = useGetList<Message>(
     "whatsapp_messages",
@@ -75,9 +76,17 @@ export const WhatsAppInbox = () => {
       if (m.company_id && !c.company_id) c.company_id = m.company_id;
       if (m.direction === "in" && !c.lastIn) c.lastIn = m;
     }
-    // Only conversations the customer took part in; campaign-only sends are not inbox items
-    return [...byPhone.values()].filter((c) => c.lastIn);
+    return [...byPhone.values()];
   }, [messages]);
+  // "Replies": the customer wrote back. "Sent": we messaged them, no answer yet.
+  const replies = useMemo(
+    () => conversations.filter((c) => c.lastIn),
+    [conversations],
+  );
+  const sentOnly = useMemo(
+    () => conversations.filter((c) => !c.lastIn),
+    [conversations],
+  );
 
   const companyIds = [
     ...new Set(conversations.map((c) => c.company_id).filter(Boolean)),
@@ -94,9 +103,10 @@ export const WhatsAppInbox = () => {
     c.last.direction === "in" &&
     (!seen[c.phone] || new Date(c.last.created_at) > new Date(seen[c.phone]));
 
-  const list = onlyUnread ? conversations.filter(isUnread) : conversations;
+  const list =
+    tab === "sent" ? sentOnly : onlyUnread ? replies.filter(isUnread) : replies;
   const current = conversations.find((c) => c.phone === selected);
-  const nbUnread = conversations.filter(isUnread).length;
+  const nbUnread = replies.filter(isUnread).length;
 
   useEffect(() => {
     if (!current) return;
@@ -208,14 +218,37 @@ export const WhatsAppInbox = () => {
     <div className="mt-2 flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">WhatsApp inbox</h1>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={onlyUnread}
-            onChange={(e) => setOnlyUnread(e.target.checked)}
-          />
-          Unread only ({nbUnread})
-        </label>
+        {tab === "replies" && (
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={onlyUnread}
+              onChange={(e) => setOnlyUnread(e.target.checked)}
+            />
+            Unread only ({nbUnread})
+          </label>
+        )}
+      </div>
+      <div className="flex gap-1 border-b">
+        {(
+          [
+            ["replies", `Replies (${replies.length})`],
+            ["sent", `Sent, no reply yet (${sentOnly.length})`],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={`-mb-px border-b-2 px-3 py-2 text-sm ${
+              tab === key
+                ? "border-primary font-medium"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       <Card className="grid h-[calc(100vh-9rem)] grid-cols-1 overflow-hidden p-0 md:grid-cols-[22rem_1fr]">
@@ -223,9 +256,11 @@ export const WhatsAppInbox = () => {
           {list.length === 0 && (
             <div className="flex flex-col items-center gap-2 p-8 text-center text-sm text-muted-foreground">
               <MessageCircle className="h-8 w-8" />
-              {conversations.length === 0
-                ? "No replies yet. Messages from leads appear here."
-                : "Nothing unread."}
+              {tab === "sent"
+                ? "Everyone you messaged has replied, or you haven't sent anything yet."
+                : replies.length === 0
+                  ? "No replies yet. Messages from leads appear here."
+                  : "Nothing unread."}
             </div>
           )}
           {list.map((c) => (
@@ -255,6 +290,11 @@ export const WhatsAppInbox = () => {
                 >
                   {preview(c.last)}
                 </span>
+                {tab === "sent" && (
+                  <span className="shrink-0 text-[11px] text-muted-foreground">
+                    {c.last.status}
+                  </span>
+                )}
                 {isUnread(c) && (
                   <span className="h-2 w-2 shrink-0 rounded-full bg-primary" />
                 )}
@@ -365,8 +405,9 @@ export const WhatsAppInbox = () => {
                   </>
                 ) : (
                   <p className="text-xs text-muted-foreground">
-                    Their last message was over 24 hours ago, so WhatsApp only
-                    allows an approved template now.
+                    {current.lastIn
+                      ? "Their last message was over 24 hours ago, so WhatsApp only allows an approved template now."
+                      : "They haven't replied yet, so WhatsApp only allows an approved template until they do."}
                     {current.company_id
                       ? " Open the company to send the welcome template."
                       : ""}
