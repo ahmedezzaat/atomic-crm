@@ -226,3 +226,7 @@ grant all on table public.quotations to service_role;
 grant all on sequence public.quotations_id_seq to authenticated;
 grant all on sequence public.quotations_id_seq to service_role;
 grant usage on sequence public.quotation_number_seq to authenticated, service_role;
+
+grant all on table public.sequenzy_queue to service_role;
+grant all on sequence public.sequenzy_queue_id_seq to service_role;
+

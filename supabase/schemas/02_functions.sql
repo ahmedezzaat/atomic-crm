@@ -516,3 +516,102 @@ $$;
 create trigger set_quotation_number before insert on public.quotations
     for each row execute function public.set_quotation_number();
 
+
+-- Asks the sync function to send what is waiting (fire and forget)
+create or replace function public.kick_sequenzy_sync() returns void
+    language plpgsql security definer set search_path = ''
+as $$
+declare
+    base_url text;
+    token text;
+begin
+    select value into base_url from public.integration_secrets where key = 'functions_url';
+    select value into token from public.integration_secrets where key = 'cron_token';
+    if base_url is null or token is null then
+        return;
+    end if;
+    perform net.http_post(
+        url := base_url || '/sequenzy_sync',
+        body := '{}'::jsonb,
+        headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-token', token),
+        timeout_milliseconds := 5000
+    );
+end;
+$$;
+revoke all on function public.kick_sequenzy_sync() from public, anon, authenticated;
+
+create or replace function public.queue_company_email_for_sequenzy() returns trigger
+    language plpgsql security definer set search_path = ''
+as $$
+begin
+    if coalesce(new.email, '') = ''
+       or (tg_op = 'UPDATE' and lower(coalesce(old.email, '')) = lower(new.email)) then
+        return new;
+    end if;
+    if coalesce((select value from public.integration_secrets where key = 'sequenzy_enabled'), '') <> '1' then
+        return new;
+    end if;
+    insert into public.sequenzy_queue (email, first_name, company, source)
+    values (lower(trim(new.email)), new.name, new.name, 'company')
+    on conflict (lower(email)) do update set attempts = 0, last_error = null;
+    perform public.kick_sequenzy_sync();
+    return new;
+end;
+$$;
+
+create or replace function public.queue_contact_emails_for_sequenzy() returns trigger
+    language plpgsql security definer set search_path = ''
+as $$
+declare
+    item jsonb;
+    addr text;
+    queued boolean := false;
+begin
+    if coalesce((select value from public.integration_secrets where key = 'sequenzy_enabled'), '') <> '1' then
+        return new;
+    end if;
+    for item in select * from jsonb_array_elements(coalesce(new.email_jsonb, '[]'::jsonb))
+    loop
+        addr := lower(trim(coalesce(item ->> 'email', '')));
+        if addr = '' then
+            continue;
+        end if;
+        if tg_op = 'UPDATE' and exists (
+            select 1 from jsonb_array_elements(coalesce(old.email_jsonb, '[]'::jsonb)) o
+            where lower(trim(coalesce(o ->> 'email', ''))) = addr
+        ) then
+            continue;
+        end if;
+        insert into public.sequenzy_queue (email, first_name, last_name, company, source)
+        values (
+            addr,
+            coalesce(new.first_name, ''),
+            coalesce(new.last_name, ''),
+            coalesce((select name from public.companies where id = new.company_id), ''),
+            'contact'
+        )
+        on conflict (lower(email)) do update
+            set first_name = excluded.first_name, last_name = excluded.last_name,
+                company = excluded.company, source = 'contact', attempts = 0, last_error = null;
+        queued := true;
+    end loop;
+    if queued then
+        perform public.kick_sequenzy_sync();
+    end if;
+    return new;
+end;
+$$;
+
+
+-- Retry anything left in the queue every 5 minutes
+create or replace function public.run_sequenzy_sync() returns void
+    language plpgsql security definer set search_path = ''
+as $$
+begin
+    if exists (select 1 from public.sequenzy_queue where attempts < 5) then
+        perform public.kick_sequenzy_sync();
+    end if;
+end;
+$$;
+revoke all on function public.run_sequenzy_sync() from public, anon, authenticated;
+

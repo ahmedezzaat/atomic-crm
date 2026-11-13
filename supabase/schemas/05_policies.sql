@@ -128,3 +128,5 @@ create policy "Enable insert for authenticated users only" on public.quotations 
 create policy "Quotation Update Policy" on public.quotations for update to authenticated using (true);
 create policy "Quotation Delete Policy" on public.quotations for delete to authenticated using (true);
 
+
+alter table public.sequenzy_queue enable row level security;

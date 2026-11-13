@@ -91,3 +91,9 @@ create or replace trigger set_sms_campaign_sales_id_trigger
 create or replace trigger set_wa_campaign_sales_id_trigger
     before insert on public.wa_campaigns
     for each row execute function public.set_sales_id_default();
+
+create trigger queue_company_email_for_sequenzy after insert or update of email on public.companies
+    for each row execute function public.queue_company_email_for_sequenzy();
+create trigger queue_contact_emails_for_sequenzy after insert or update of email_jsonb on public.contacts
+    for each row execute function public.queue_contact_emails_for_sequenzy();
+

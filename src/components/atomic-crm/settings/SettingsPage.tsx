@@ -1,11 +1,13 @@
 /* eslint-disable react-refresh/only-export-components */
 import { CallSettingsCard } from "./CallSettingsCard";
 import { LeadSettingsCard } from "./LeadSettingsCard";
+import { SequenzySettingsCard } from "./SequenzySettingsCard";
 import { SmsSettingsCard } from "./SmsSettingsCard";
 import {
   Building2,
   CheckSquare,
   Handshake,
+  Mail,
   MessageCircle,
   MessageSquareText,
   Palette,
@@ -165,6 +167,14 @@ const GROUPS: { title: string; items: SectionItem[] }[] = [
         fallback: "SMS",
         icon: MessageSquareText,
         keywords: "cequens sender names token",
+        standalone: true,
+      },
+      {
+        id: "sequenzy",
+        label: "",
+        fallback: "Email list (Sequenzy)",
+        icon: Mail,
+        keywords: "sequenzy email marketing list subscribers newsletter sync",
         standalone: true,
       },
       {
@@ -626,6 +636,10 @@ const SettingsFormFields = () => {
 
         <Section id="sms" active={active}>
           <SmsSettingsCard />
+        </Section>
+
+        <Section id="sequenzy" active={active}>
+          <SequenzySettingsCard />
         </Section>
 
         <Section id="calls" active={active}>
