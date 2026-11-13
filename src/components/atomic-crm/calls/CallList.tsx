@@ -1,5 +1,6 @@
-import { Copy, Trash2, Video } from "lucide-react";
+import { Copy, Download, Trash2, Video } from "lucide-react";
 import { useDelete, useGetList, useGetMany, useNotify } from "ra-core";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,12 @@ import {
 } from "@/components/ui/table";
 
 import type { Company } from "../types";
-import { guestLink, type CallRecord } from "./callApi";
+import {
+  downloadRecording,
+  guestLink,
+  recordingUrls,
+  type CallRecord,
+} from "./callApi";
 
 const duration = (call: CallRecord) => {
   if (!call.started_at || !call.ended_at) return "—";
@@ -37,6 +43,17 @@ export const CallList = () => {
     },
     { refetchInterval: 10000 },
   );
+  // play links for every recording on the page, fetched in one request
+  const [audio, setAudio] = useState<Record<string, string>>({});
+  const pathsKey = calls
+    .map((c) => c.recording_path)
+    .filter(Boolean)
+    .join("|");
+  useEffect(() => {
+    const paths = pathsKey ? pathsKey.split("|") : [];
+    if (paths.length === 0) return;
+    recordingUrls(paths).then(setAudio);
+  }, [pathsKey]);
   const companyIds = [
     ...new Set(calls.map((c) => c.company_id).filter(Boolean)),
   ] as number[];
@@ -71,6 +88,7 @@ export const CallList = () => {
                   <TableHead>Status</TableHead>
                   <TableHead>Started</TableHead>
                   <TableHead>Duration</TableHead>
+                  <TableHead>Recording</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -96,6 +114,38 @@ export const CallList = () => {
                         : "Not started"}
                     </TableCell>
                     <TableCell>{duration(call)}</TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {call.recording_path ? (
+                        <div className="flex items-center gap-1">
+                          {audio[call.recording_path] ? (
+                            <audio
+                              controls
+                              preload="none"
+                              src={audio[call.recording_path]}
+                              className="h-8 w-56"
+                            />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">
+                              Loading…
+                            </span>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label="Download recording"
+                            onClick={() =>
+                              downloadRecording(call).catch((e) =>
+                                notify(e.message, { type: "error" }),
+                              )
+                            }
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       {call.status !== "ended" && (
                         <Button

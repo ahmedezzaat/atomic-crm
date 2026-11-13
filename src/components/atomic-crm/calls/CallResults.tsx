@@ -1,8 +1,14 @@
+import { Download } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-import { processCall, recordingUrl, type CallRecord } from "./callApi";
+import {
+  downloadRecording,
+  processCall,
+  recordingUrl,
+  type CallRecord,
+} from "./callApi";
 
 const STEPS: Record<string, string> = {
   uploading: "Saving the recording…",
@@ -51,6 +57,20 @@ export const CallResults = ({
         <h2 className="text-lg font-semibold">Recording & summary</h2>
 
         {audioUrl && <audio controls src={audioUrl} className="w-full" />}
+        {call.recording_path && (
+          <div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                downloadRecording(call).catch((e) => setError(e.message))
+              }
+            >
+              <Download className="h-4 w-4" />
+              Download recording
+            </Button>
+          </div>
+        )}
 
         {busy && <p className="text-sm text-muted-foreground">{busy}</p>}
 

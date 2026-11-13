@@ -107,3 +107,44 @@ export const recordingUrl = async (path: string) => {
     .createSignedUrl(path, 60 * 60);
   return data?.signedUrl;
 };
+
+/** Signed play links for many recordings in one request. */
+export const recordingUrls = async (paths: string[]) => {
+  const { data } = await getSupabaseClient()
+    .storage.from("call-recordings")
+    .createSignedUrls(paths, 60 * 60);
+  return Object.fromEntries(
+    (data ?? []).flatMap((d) =>
+      d.path && d.signedUrl ? [[d.path, d.signedUrl]] : [],
+    ),
+  ) as Record<string, string>;
+};
+
+/** Saves the recording to the computer, named after the call. */
+export const downloadRecording = async (call: {
+  id: Identifier;
+  title: string;
+  recording_path: string | null;
+  started_at: string | null;
+  created_at: string;
+}) => {
+  if (!call.recording_path) return;
+  const ext = call.recording_path.split(".").pop() || "webm";
+  const day = (call.started_at ?? call.created_at).slice(0, 10);
+  const label = (call.title || `Call ${call.id}`)
+    .replace(/[\\/:*?"<>|]+/g, " ")
+    .trim();
+  const { data, error } = await getSupabaseClient()
+    .storage.from("call-recordings")
+    .createSignedUrl(call.recording_path, 60, {
+      download: `Kords call - ${label} - ${day}.${ext}`,
+    });
+  if (error || !data?.signedUrl) {
+    throw new Error(error?.message ?? "Could not prepare the download");
+  }
+  const a = document.createElement("a");
+  a.href = data.signedUrl;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+};
