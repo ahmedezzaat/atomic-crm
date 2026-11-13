@@ -37,6 +37,9 @@ type Audience = {
   city?: string;
   country?: string;
   competitor?: string;
+  sector?: string;
+  size?: string;
+  sales_id?: string;
   // only companies with no deal (open, won, lost or archived), no subscription
   // and not flagged as a customer
   new_only?: boolean;
@@ -55,9 +58,18 @@ async function eligible(audience: Audience) {
     .not("phone_number", "is", null)
     .eq("whatsapp_opted_out", false)
     .order("id");
-  for (const key of ["lead_source", "city", "country", "competitor"] as const) {
+  for (const key of [
+    "lead_source",
+    "city",
+    "country",
+    "competitor",
+    "sector",
+  ] as const) {
     if (audience[key]) query = query.eq(key, audience[key]!);
   }
+  if (audience.size) query = query.eq("size", Number(audience.size));
+  if (audience.sales_id)
+    query = query.eq("sales_id", Number(audience.sales_id));
   if (audience.tag) query = query.contains("tags", [Number(audience.tag)]);
   const { data, error } = await query.limit(10000);
   if (error) throw error;

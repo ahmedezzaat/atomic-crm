@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+import { sizes } from "../companies/sizes";
 import { getSupabaseClient } from "../providers/supabase/supabase";
 import { useConfigurationContext } from "../root/ConfigurationContext";
 import {
@@ -73,6 +74,9 @@ const emptyDraft = (): Draft => ({
     city: ANY,
     country: ANY,
     competitor: ANY,
+    sector: ANY,
+    size: ANY,
+    sales_id: ANY,
   },
 });
 
@@ -107,10 +111,14 @@ export const WaCampaignForm = () => {
     companyCities,
     companyCountries,
     companyCompetitors,
+    companySectors,
     companyLeadSources,
   } = useConfigurationContext();
   const [create] = useCreate();
   const [update] = useUpdate();
+  const { data: salesPeople = [] } = useGetList("sales", {
+    pagination: { page: 1, perPage: 100 },
+  });
   const { data: tags = [] } = useGetList("company_tags", {
     pagination: { page: 1, perPage: 100 },
   });
@@ -473,6 +481,20 @@ export const WaCampaignForm = () => {
                   })),
                 )}
                 {pick("Competitor system", "competitor", companyCompetitors)}
+                {pick("Sector", "sector", companySectors)}
+                {pick(
+                  "Company size",
+                  "size",
+                  sizes.map((z) => ({ value: String(z.id), label: z.name })),
+                )}
+                {pick(
+                  "Assigned to",
+                  "sales_id",
+                  salesPeople.map((u: any) => ({
+                    value: String(u.id),
+                    label: `${u.first_name} ${u.last_name}`.trim(),
+                  })),
+                )}
               </div>
               <label className="flex items-center gap-2 text-sm">
                 <input

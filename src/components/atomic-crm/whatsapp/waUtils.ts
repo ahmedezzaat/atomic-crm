@@ -6,6 +6,9 @@ export type WaAudience = {
   city?: string;
   country?: string;
   competitor?: string;
+  sector?: string;
+  size?: string;
+  sales_id?: string;
   new_only?: boolean;
 };
 
