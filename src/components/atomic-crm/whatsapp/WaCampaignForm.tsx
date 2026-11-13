@@ -21,25 +21,27 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 import { sizes } from "../companies/sizes";
+import { MultiSelect } from "./MultiSelect";
 import { getSupabaseClient } from "../providers/supabase/supabase";
 import { useConfigurationContext } from "../root/ConfigurationContext";
-import {
-  waStatusLabel,
-  type WaAudience,
-  type WaCampaign,
-  type WaFollowup,
-} from "./waUtils";
+import { waStatusLabel, type WaCampaign, type WaFollowup } from "./waUtils";
 
-const ANY = "__all";
+type AudienceField =
+  | "lead_source"
+  | "tag"
+  | "city"
+  | "country"
+  | "competitor"
+  | "sector"
+  | "size"
+  | "sales_id";
+
+const toList = (v: unknown): string[] =>
+  (Array.isArray(v) ? v : v ? [v] : [])
+    .map(String)
+    .filter((x) => x && x !== "__all");
 
 type Draft = {
   name: string;
@@ -52,7 +54,7 @@ type Draft = {
   send_from_hour: number;
   send_to_hour: number;
   followups: WaFollowup[];
-  audience: Required<Omit<WaAudience, "new_only">>;
+  audience: Record<AudienceField, string[]>;
   new_only: boolean;
 };
 
@@ -69,14 +71,14 @@ const emptyDraft = (): Draft => ({
   followups: [],
   new_only: false,
   audience: {
-    lead_source: ANY,
-    tag: ANY,
-    city: ANY,
-    country: ANY,
-    competitor: ANY,
-    sector: ANY,
-    size: ANY,
-    sales_id: ANY,
+    lead_source: [],
+    tag: [],
+    city: [],
+    country: [],
+    competitor: [],
+    sector: [],
+    size: [],
+    sales_id: [],
   },
 });
 
@@ -150,7 +152,12 @@ export const WaCampaignForm = () => {
       send_from_hour: saved.send_from_hour,
       send_to_hour: saved.send_to_hour,
       followups: saved.followups ?? [],
-      audience: { ...emptyDraft().audience, ...saved.audience },
+      audience: Object.fromEntries(
+        Object.keys(emptyDraft().audience).map((k) => [
+          k,
+          toList((saved.audience as Record<string, unknown>)?.[k]),
+        ]),
+      ) as Draft["audience"],
       new_only: saved.audience?.new_only === true,
     });
     // load once per campaign id, not on every refetch
@@ -159,7 +166,7 @@ export const WaCampaignForm = () => {
 
   const audience = {
     ...Object.fromEntries(
-      Object.entries(draft.audience).filter(([, v]) => v !== ANY),
+      Object.entries(draft.audience).filter(([, v]) => v.length > 0),
     ),
     ...(draft.new_only ? { new_only: true } : {}),
   };
@@ -218,7 +225,7 @@ export const WaCampaignForm = () => {
       ...d,
       followups: d.followups.filter((_, i) => i !== index),
     }));
-  const setAudience = (key: keyof Draft["audience"], value: string) =>
+  const setAudience = (key: keyof Draft["audience"], value: string[]) =>
     setDraft((d) => ({ ...d, audience: { ...d.audience, [key]: value } }));
 
   const valid =
@@ -321,22 +328,11 @@ export const WaCampaignForm = () => {
   ) => (
     <div key={field} className="flex flex-col gap-1.5">
       <Label>{label}</Label>
-      <Select
+      <MultiSelect
+        options={items}
         value={draft.audience[field]}
-        onValueChange={(v) => setAudience(field, v)}
-      >
-        <SelectTrigger className="w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ANY}>Any</SelectItem>
-          {items.map((o) => (
-            <SelectItem key={o.value} value={o.value}>
-              {o.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        onChange={(v) => setAudience(field, v)}
+      />
     </div>
   );
 

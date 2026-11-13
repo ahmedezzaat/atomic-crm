@@ -31,15 +31,17 @@ import {
 const CONCURRENCY = 5;
 const MAX_BATCH = 250;
 
+// Each field takes one value or a list of values (match any of them)
+type Many = string | string[];
 type Audience = {
-  lead_source?: string;
-  tag?: string;
-  city?: string;
-  country?: string;
-  competitor?: string;
-  sector?: string;
-  size?: string;
-  sales_id?: string;
+  lead_source?: Many;
+  tag?: Many;
+  city?: Many;
+  country?: Many;
+  competitor?: Many;
+  sector?: Many;
+  size?: Many;
+  sales_id?: Many;
   // only companies with no deal (open, won, lost or archived), no subscription
   // and not flagged as a customer
   new_only?: boolean;
@@ -50,6 +52,9 @@ const json = (body: unknown, status = 200) =>
     status,
     headers: { "Content-Type": "application/json", ...corsHeaders },
   });
+
+const many = (v?: Many): string[] =>
+  (Array.isArray(v) ? v : v ? [v] : []).map(String).filter(Boolean);
 
 async function eligible(audience: Audience) {
   let query = supabaseAdmin
@@ -65,12 +70,15 @@ async function eligible(audience: Audience) {
     "competitor",
     "sector",
   ] as const) {
-    if (audience[key]) query = query.eq(key, audience[key]!);
+    const values = many(audience[key]);
+    if (values.length) query = query.in(key, values);
   }
-  if (audience.size) query = query.eq("size", Number(audience.size));
-  if (audience.sales_id)
-    query = query.eq("sales_id", Number(audience.sales_id));
-  if (audience.tag) query = query.contains("tags", [Number(audience.tag)]);
+  const sizes = many(audience.size).map(Number);
+  if (sizes.length) query = query.in("size", sizes);
+  const salesIds = many(audience.sales_id).map(Number);
+  if (salesIds.length) query = query.in("sales_id", salesIds);
+  const tags = many(audience.tag).map(Number);
+  if (tags.length) query = query.overlaps("tags", tags);
   const { data, error } = await query.limit(10000);
   if (error) throw error;
 

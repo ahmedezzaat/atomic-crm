@@ -1,14 +1,16 @@
 export type WaStatus = "draft" | "active" | "done";
 
+// Each field holds the values to match (any of them); an old campaign may
+// still hold a single string
 export type WaAudience = {
-  lead_source?: string;
-  tag?: string;
-  city?: string;
-  country?: string;
-  competitor?: string;
-  sector?: string;
-  size?: string;
-  sales_id?: string;
+  lead_source?: string | string[];
+  tag?: string | string[];
+  city?: string | string[];
+  country?: string | string[];
+  competitor?: string | string[];
+  sector?: string | string[];
+  size?: string | string[];
+  sales_id?: string | string[];
   new_only?: boolean;
 };
 
