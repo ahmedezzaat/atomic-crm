@@ -1,4 +1,4 @@
-import { FileText, Package, Plus, Trash2 } from "lucide-react";
+import { FileText, Package, Plus, ScrollText, Trash2 } from "lucide-react";
 import { useDelete, useGetList, useNotify } from "ra-core";
 import { useNavigate } from "react-router";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +44,14 @@ export const QuotationList = () => {
           >
             <Package className="h-4 w-4" />
             Products
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => navigate("/quotations/terms")}
+          >
+            <ScrollText className="h-4 w-4" />
+            Terms
           </Button>
           <Button size="sm" onClick={() => navigate("/quotations/new")}>
             <Plus className="h-4 w-4" />

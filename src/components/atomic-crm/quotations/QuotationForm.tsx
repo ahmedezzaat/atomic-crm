@@ -34,6 +34,7 @@ import {
   periodPrices,
   type Period,
   type Product,
+  type TermsTemplate,
   type Quotation,
   type QuoteItem,
   type QuoteStatus,
@@ -107,6 +108,27 @@ export const QuotationForm = () => {
     sort: { field: "name", order: "ASC" },
     filter: { active: true },
   });
+  const { data: termsTemplates = [] } = useGetList<TermsTemplate>(
+    "quotation_terms",
+    {
+      pagination: { page: 1, perPage: 200 },
+      sort: { field: "name", order: "ASC" },
+    },
+  );
+  const langTemplates = termsTemplates.filter(
+    (t) => t.language === draft.language,
+  );
+  // A new quotation starts with the default terms for its language, until
+  // the person edits or picks something themselves
+  const [termsTouched, setTermsTouched] = useState(false);
+  const defaultTerms = langTemplates.find((t) => t.is_default)?.body ?? "";
+  useEffect(() => {
+    if (id || termsTouched) return;
+    setDraft((d) =>
+      d.terms === defaultTerms ? d : { ...d, terms: defaultTerms },
+    );
+  }, [id, termsTouched, defaultTerms]);
+
   const { data: company } = useGetOne<{ id: number; name: string }>(
     "companies",
     { id: draft.company_id },
@@ -596,12 +618,45 @@ export const QuotationForm = () => {
                 />
               </div>
               <div className={field}>
-                <Label>Terms & conditions</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label>Terms & conditions</Label>
+                  <Select
+                    value="__pick"
+                    onValueChange={(v) => {
+                      const t = langTemplates.find((x) => String(x.id) === v);
+                      if (t) {
+                        setTermsTouched(true);
+                        set({ terms: t.body });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-56">
+                      <SelectValue placeholder="Use a template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__pick" disabled>
+                        {langTemplates.length === 0
+                          ? "No templates for this language"
+                          : "Use a template…"}
+                      </SelectItem>
+                      {langTemplates.map((t) => (
+                        <SelectItem key={t.id} value={String(t.id)}>
+                          {t.name}
+                          {t.is_default ? " (default)" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Textarea
-                  rows={4}
+                  rows={5}
+                  dir={draft.language === "ar" ? "rtl" : "ltr"}
                   placeholder="Payment terms, delivery, validity…"
                   value={draft.terms}
-                  onChange={(e) => set({ terms: e.target.value })}
+                  onChange={(e) => {
+                    setTermsTouched(true);
+                    set({ terms: e.target.value });
+                  }}
                 />
               </div>
             </CardContent>

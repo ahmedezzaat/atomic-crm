@@ -32,6 +32,14 @@ export type Quotation = {
   created_at: string;
 };
 
+export type TermsTemplate = {
+  id: number;
+  name: string;
+  language: "en" | "ar";
+  body: string;
+  is_default: boolean;
+};
+
 export type Product = {
   id: number;
   name: string;
@@ -101,8 +109,8 @@ export const computeTotals = (
 
 export const formatMoney = (value: number, currency: string, _lang = "en") =>
   `${new Intl.NumberFormat("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   }).format(value)} ${currency}`;
 
 // Wording on the printed page

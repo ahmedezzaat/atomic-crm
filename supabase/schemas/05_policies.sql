@@ -130,3 +130,10 @@ create policy "Quotation Delete Policy" on public.quotations for delete to authe
 
 
 alter table public.sequenzy_queue enable row level security;
+
+alter table public.quotation_terms enable row level security;
+create policy "Enable read access for authenticated users" on public.quotation_terms for select to authenticated using (true);
+create policy "Enable insert for authenticated users only" on public.quotation_terms for insert to authenticated with check (true);
+create policy "Quotation Terms Update Policy" on public.quotation_terms for update to authenticated using (true);
+create policy "Quotation Terms Delete Policy" on public.quotation_terms for delete to authenticated using (true);
+
