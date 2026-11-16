@@ -248,12 +248,11 @@ async function followupState(campaign: Campaign) {
     if (replied.has(phone)) continue;
     const step = steps[last.followup_step];
     const age = now - new Date(last.created_at).getTime();
-    if (last.status === "sent") {
-      // not delivered (yet): wait for the delivery report, give up after a week
-      if (age < 7 * 24 * 3600_000) waiting++;
-      continue;
-    }
-    if (age < step.after_hours * 3600_000) {
+    // Still "sent" (no delivery report yet): give the report a couple of hours
+    // after the wait is over, then follow up anyway. A report can be missing
+    // when it reaches us before the message id is saved.
+    const grace = last.status === "sent" ? 2 * 3600_000 : 0;
+    if (age < step.after_hours * 3600_000 + grace) {
       waiting++;
       continue;
     }
@@ -398,7 +397,9 @@ async function runBatch(
           wa_message_id: result.id ?? null,
           error: result.error ?? null,
         })
-        .eq("id", row.id);
+        .eq("id", row.id)
+        // a delivery report that beat us here must not be overwritten
+        .eq("status", "queued");
     }
   };
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));

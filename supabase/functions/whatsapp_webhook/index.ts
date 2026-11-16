@@ -40,6 +40,14 @@ const STATUS_MAP: Record<string, string> = {
   failed: "failed",
 };
 
+// Statuses a message may still be in when this report arrives
+const BEFORE: Record<string, string[]> = {
+  sent: ["queued"],
+  delivered: ["queued", "sent"],
+  read: ["queued", "sent", "delivered"],
+  failed: ["queued", "sent"],
+};
+
 /** Message the business typed in the WhatsApp Business app (coexistence). */
 async function handleEcho(echo: any) {
   const phone = normalizePhone(echo.to);
@@ -209,13 +217,16 @@ Deno.serve(async (req: Request) => {
           const mapped = STATUS_MAP[status.status];
           if (!mapped || !status.id) continue;
           const error = status.errors?.[0];
+          // Meta can deliver reports out of order (a late "sent" after
+          // "delivered"): a status may only move forward, never back
           await supabaseAdmin
             .from("whatsapp_messages")
             .update({
               status: mapped,
               error: error ? `${error.code}: ${error.title}` : null,
             })
-            .eq("wa_message_id", status.id);
+            .eq("wa_message_id", status.id)
+            .in("status", BEFORE[mapped]);
         }
       }
     }
